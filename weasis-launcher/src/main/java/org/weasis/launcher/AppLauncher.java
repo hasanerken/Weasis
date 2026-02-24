@@ -132,21 +132,35 @@ public class AppLauncher extends WeasisLauncher implements Singleton.SingletonAp
     String uri = e.getURI().toString();
     LOGGER.info("Get URI event from OS. URI: {}", uri);
     int index = Utils.getWeasisProtocolIndex(uri);
+    List<String> commands;
     if (index < 0) {
-      uri = "dicom:get -r \"" + uri + "\""; // NON-NLS
-      instance.executeCommands(List.of(uri), null);
+      commands = List.of("dicom:get -r \"" + uri + "\""); // NON-NLS
     } else {
-      boolean sameInstance = System.currentTimeMillis() - time < 3000;
-      String[] args = getArgsForURI(uri);
-      Thread launcherThread =
-          Thread.ofVirtual().start(() -> launchProcess(args, sameInstance, noArgs, instance));
-      launcherThread.start();
+      // Decode the zenviewer:// URI and extract commands
+      String decoded = java.net.URLDecoder.decode(uri, java.nio.charset.StandardCharsets.UTF_8);
+      String[] cmds = decoded.split("\\$");
+      commands = new java.util.ArrayList<>();
+      for (int i = 1; i < cmds.length; i++) {
+        commands.add(cmds[i]);
+      }
+    }
+    LOGGER.info("Commands from URI: {}", commands);
+
+    if (instance.frameworkLoaded) {
+      // Framework already running — execute commands directly
+      LOGGER.info("Framework loaded, executing commands immediately");
+      instance.executeCommands(commands, null);
+    } else {
+      // Framework not yet loaded — add commands to configData so they get picked up
+      // by the normal launch() flow after OSGI bundles are ready
+      LOGGER.info("Framework not loaded yet, queuing commands for startup");
+      instance.configData.getArguments().addAll(commands);
     }
   }
 
   private static String[] getArgsForURI(String uri) {
     if (SystemInfo.isMacOS) {
-      return new String[] {"open", "-n", "-b", "org.weasis.launcher", "--args", uri}; // NON-NLS
+      return new String[] {"open", "-n", "-b", "com.zenpacs.zenviewer", "--args", uri}; // NON-NLS
     } else if (SystemInfo.isWindows) {
       return new String[] {"cmd", "/c", "start", uri}; // NON-NLS
     } else {

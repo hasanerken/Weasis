@@ -485,7 +485,7 @@ public class ConfigData {
   }
 
   private List<String> extractWeasisConfigArguments() {
-    String configCmd = "weasis:config"; // NON-NLS
+    String configCmd = "zenviewer:config"; // NON-NLS
     for (String cmd : arguments) {
       if (cmd.startsWith(configCmd) && cmd.length() > configCmd.length() + 2) {
         arguments.remove(cmd);

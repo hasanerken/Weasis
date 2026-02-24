@@ -202,6 +202,9 @@ public class WeasisLauncher {
       }
       // Start the framework.
       mFelix.start();
+      // Re-open tracker now that framework is ACTIVE (forces rescan of service registry)
+      mTracker.close();
+      mTracker.open();
 
       // End of splash screen
       loader.close();
@@ -295,19 +298,92 @@ Starting OSGI Bundles...
   }
 
   protected void executeCommands(List<String> commandList, String goshArgs) {
+    debugLog("executeCommands called with " + commandList.size() + " commands, goshArgs=" + (goshArgs != null ? "present" : "null"));
+    for (int i = 0; i < commandList.size(); i++) {
+      debugLog("  command[" + i + "] = " + commandList.get(i));
+    }
     SwingUtilities.invokeLater(
         () -> {
+          debugLog("executeCommands invokeLater running on EDT");
+          debugLog("mFelix state: " + (mFelix != null ? mFelix.getState() : "null"));
+          debugLog("mTracker: " + (mTracker != null ? "exists" : "null"));
+          if (mFelix != null) {
+            try {
+              Bundle[] bundles = mFelix.getBundleContext().getBundles();
+              debugLog("Bundle count: " + bundles.length);
+              for (Bundle b : bundles) {
+                if (b.getSymbolicName() != null && b.getSymbolicName().contains("gogo")) {
+                  debugLog("  Bundle: " + b.getSymbolicName() + " state=" + State.valueOf(b.getState()));
+                  // List services registered by each gogo bundle
+                  org.osgi.framework.ServiceReference<?>[] refs = b.getRegisteredServices();
+                  if (refs != null) {
+                    for (org.osgi.framework.ServiceReference<?> r : refs) {
+                      debugLog("    Registered service: " + java.util.Arrays.toString((String[]) r.getProperty("objectClass")));
+                    }
+                  } else {
+                    debugLog("    Registered services: NONE");
+                  }
+                }
+              }
+              // List ALL registered services in the framework
+              debugLog("--- ALL registered services ---");
+              org.osgi.framework.ServiceReference<?>[] allRefs =
+                  mFelix.getBundleContext().getAllServiceReferences(null, null);
+              if (allRefs != null) {
+                debugLog("Total services: " + allRefs.length);
+                for (org.osgi.framework.ServiceReference<?> r : allRefs) {
+                  String[] classes = (String[]) r.getProperty("objectClass");
+                  debugLog("  Service: " + java.util.Arrays.toString(classes)
+                      + " from bundle=" + r.getBundle().getSymbolicName());
+                }
+              } else {
+                debugLog("Total services: NULL (no services registered!)");
+              }
+              debugLog("--- END services ---");
+            } catch (Exception ex) {
+              debugLog("Error listing bundles/services: " + ex);
+            }
+          }
           mTracker.open();
+
+          Object service = mTracker.getService();
+          debugLog("CommandProcessor service (tracker): " + (service != null ? service.getClass().getName() : "NULL"));
+
+          // Fallback: if ServiceTracker returned null, poll BundleContext directly
+          if (service == null && mFelix != null) {
+            debugLog("ServiceTracker returned NULL, polling BundleContext directly...");
+            for (int i = 0; i < 300 && service == null; i++) {
+              try {
+                org.osgi.framework.ServiceReference<?> ref = mFelix.getBundleContext()
+                    .getServiceReference("org.apache.felix.service.command.CommandProcessor");
+                if (ref != null) {
+                  service = mFelix.getBundleContext().getService(ref);
+                }
+              } catch (Exception e) {
+                // Framework may not be fully ready
+              }
+              if (service == null) {
+                try {
+                  TimeUnit.MILLISECONDS.sleep(100);
+                } catch (InterruptedException e) {
+                  Thread.currentThread().interrupt();
+                  return;
+                }
+              }
+            }
+            debugLog("BundleContext polling result: " + (service != null ? "FOUND " + service.getClass().getName() : "STILL NULL after 30s"));
+          }
 
           // Do not close streams. Workaround for stackoverflow issue when using System.in
           Object commandSession =
               getCommandSession(
-                  mTracker.getService(),
+                  service,
                   new Object[] {
                     new FileInputStream(FileDescriptor.in),
                     new FileOutputStream(FileDescriptor.out),
                     new FileOutputStream(FileDescriptor.err)
                   });
+          debugLog("commandSession: " + (commandSession != null ? "created" : "NULL"));
           if (commandSession != null) {
             if (goshArgs == null) {
               // Set the main window visible and to the front
@@ -325,13 +401,18 @@ Starting OSGI Bundles...
             }
 
             // execute the commands from main argv
+            debugLog("Executing " + commandList.size() + " commands from commandList");
             for (String command : commandList) {
-              commandSessionExecute(commandSession, command);
+              debugLog("Executing command: " + command);
+              Object result = commandSessionExecute(commandSession, command);
+              debugLog("Command result: " + result);
             }
             commandSessionClose(commandSession);
+          } else {
+            debugLog("ERROR: commandSession is NULL - commands will NOT execute!");
           }
 
-          mTracker.close();
+          // Do not close mTracker here — keep it open for subsequent executeCommands calls
         });
   }
 
@@ -578,20 +659,37 @@ Starting OSGI Bundles...
 
   public static Object commandSessionExecute(Object commandSession, CharSequence charSequence) {
     if (commandSession == null) {
+      debugLog("commandSessionExecute: session is null for command: " + charSequence);
       return false;
     }
+    debugLog("commandSessionExecute: executing '" + charSequence + "'");
     Class<?>[] parameterTypes = new Class[] {CharSequence.class};
 
     Object[] arguments = new Object[] {charSequence};
 
     try {
       Method nameMethod = commandSession.getClass().getMethod("execute", parameterTypes);
-      return nameMethod.invoke(commandSession, arguments);
+      Object result = nameMethod.invoke(commandSession, arguments);
+      debugLog("commandSessionExecute: success, result=" + result);
+      return result;
     } catch (Exception ex) {
-      LOGGER.error("Execute command", ex);
+      debugLog("commandSessionExecute FAILED for '" + charSequence + "': " + ex);
+      LOGGER.error("Execute command '{}' failed", charSequence, ex);
     }
 
     return null;
+  }
+
+  private static void debugLog(String msg) {
+    String line = java.time.LocalDateTime.now() + " [ZV-DEBUG] " + msg;
+    System.err.println(line);
+    try {
+      java.io.File f = new java.io.File(System.getProperty("user.home", ".") + "/.weasis/log/zenviewer-debug.log");
+      try (java.io.FileWriter fw = new java.io.FileWriter(f, true)) {
+        fw.write(line + "\n");
+        fw.flush();
+      }
+    } catch (Exception ignored) {}
   }
 
   /** This following part has been copied from the Main class of the Felix project */
