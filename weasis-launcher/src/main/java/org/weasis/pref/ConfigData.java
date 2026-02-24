@@ -185,7 +185,7 @@ public class ConfigData {
     String profile = preferences.getValue(P_WEASIS_PROFILE, "default");
     addProperty(P_WEASIS_PROFILE, profile);
 
-    String name = preferences.getValue(P_WEASIS_NAME, "Weasis"); // NON-NLS
+    String name = preferences.getValue(P_WEASIS_NAME, "ZenViewer"); // NON-NLS
     addProperty(P_WEASIS_NAME, name);
 
     String version = preferences.getValue(P_WEASIS_VERSION, "0.0.0");
