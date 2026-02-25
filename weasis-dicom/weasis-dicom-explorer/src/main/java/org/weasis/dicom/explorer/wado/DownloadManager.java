@@ -139,8 +139,8 @@ public class DownloadManager {
       new PriorityBlockingQueue<>(10, new PriorityTaskComparator());
   public static final ThreadPoolExecutor CONCURRENT_EXECUTOR =
       new ThreadPoolExecutor(
-          GuiUtils.getUICore().getSystemPreferences().getIntProperty(CONCURRENT_SERIES, 3),
-          GuiUtils.getUICore().getSystemPreferences().getIntProperty(CONCURRENT_SERIES, 3),
+          GuiUtils.getUICore().getSystemPreferences().getIntProperty(CONCURRENT_SERIES, 5),
+          GuiUtils.getUICore().getSystemPreferences().getIntProperty(CONCURRENT_SERIES, 5),
           0L,
           TimeUnit.MILLISECONDS,
           PRIORITY_QUEUE,
@@ -252,7 +252,7 @@ public class DownloadManager {
         DownloadManager.CONCURRENT_EXECUTOR.setCorePoolSize(
             GuiUtils.getUICore()
                 .getSystemPreferences()
-                .getIntProperty(DownloadManager.CONCURRENT_SERIES, 3));
+                .getIntProperty(DownloadManager.CONCURRENT_SERIES, 5));
       }
     }
   }
@@ -732,7 +732,7 @@ public class DownloadManager {
               authMethod,
               GuiUtils.getUICore()
                   .getSystemPreferences()
-                  .getIntProperty(LoadSeries.CONCURRENT_DOWNLOADS_IN_SERIES, 4),
+                  .getIntProperty(LoadSeries.CONCURRENT_DOWNLOADS_IN_SERIES, 6),
               true,
               true);
       DownloadPriority downloadPriority = new DownloadPriority(patient, study, dicomSeries, true);

@@ -6,6 +6,7 @@
 package org.weasis.dicom.explorer;
 
 import bibliothek.gui.dock.common.CLocation;
+import bibliothek.gui.dock.common.mode.ExtendedMode;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.awt.BorderLayout;
@@ -55,7 +56,7 @@ public class PatientCaseInfoPanel extends PluginTool {
   private SwingWorker<JsonNode, Void> currentWorker;
 
   public PatientCaseInfoPanel() {
-    super(BUTTON_NAME, Insertable.Type.TOOL, 35);
+    super(BUTTON_NAME, POSITION.EAST, ExtendedMode.NORMALIZED, Insertable.Type.TOOL, 35);
     dockable.setTitleIcon(ResourceUtil.getIcon(OtherIcon.PATIENT));
     setDockableWidth(260);
 

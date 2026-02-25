@@ -443,7 +443,7 @@
     },
     {
       "code": "download.concurrent.series",
-      "value": "3",
+      "value": "5",
       "description": "Controls the number of series downloaded simultaneously",
       "type": "A",
       "javaType": "INT",
@@ -451,7 +451,7 @@
     },
     {
       "code": "download.concurrent.series.images",
-      "value": "4",
+      "value": "6",
       "description": "The number of concurrently downloaded images within a series",
       "type": "A",
       "javaType": "INT",

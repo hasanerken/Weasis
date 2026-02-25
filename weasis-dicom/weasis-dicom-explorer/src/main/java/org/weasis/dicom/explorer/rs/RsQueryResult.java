@@ -609,7 +609,7 @@ public class RsQueryResult extends AbstractQueryResult {
               authMethod,
               GuiUtils.getUICore()
                   .getSystemPreferences()
-                  .getIntProperty(LoadSeries.CONCURRENT_DOWNLOADS_IN_SERIES, 4),
+                  .getIntProperty(LoadSeries.CONCURRENT_DOWNLOADS_IN_SERIES, 6),
               true,
               startDownloading);
       loadSeries.setPriority(
