@@ -725,7 +725,7 @@ public class AudioRecorderPanel extends JPanel {
     if (getParent() == null) return;
     int parentW = getParent().getWidth();
     int myW = getWidth();
-    int x = parentW - myW - MARGIN;
+    int x = parentW - myW - MARGIN - 80;
     int y = MARGIN;
     setLocation(x, y);
   }

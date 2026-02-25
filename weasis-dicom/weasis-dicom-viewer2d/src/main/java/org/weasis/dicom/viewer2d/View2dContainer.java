@@ -94,6 +94,7 @@ import org.weasis.dicom.explorer.DicomExplorer;
 import org.weasis.dicom.explorer.DicomModel;
 import org.weasis.dicom.explorer.DicomViewerPlugin;
 import org.weasis.dicom.explorer.ExportToolBar;
+import org.weasis.dicom.explorer.PatientCaseInfoPanel;
 import org.weasis.dicom.explorer.ZenToolBar;
 import org.weasis.dicom.explorer.ImportToolBar;
 import org.weasis.dicom.explorer.print.DicomPrintDialog;
@@ -375,6 +376,16 @@ public class View2dContainer extends DicomViewerPlugin implements PropertyChange
           true)) {
         tool = new MeasureTool(eventManager);
         tools.add(tool);
+      }
+
+      if (InsertableUtil.getBooleanProperty(
+          preferences,
+          bundleName,
+          componentName,
+          InsertableUtil.getCName(PatientCaseInfoPanel.class),
+          key,
+          true)) {
+        tools.add(new PatientCaseInfoPanel());
       }
 
       InsertableUtil.sortInsertable(tools);

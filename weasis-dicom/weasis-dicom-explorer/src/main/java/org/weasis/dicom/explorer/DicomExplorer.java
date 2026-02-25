@@ -177,14 +177,13 @@ public class DicomExplorer extends PluginTool implements DataExplorerView, Serie
             if (patient != null && !isPatientHasOpenSeries(patient)) {
               openFirstSeriesForPatient(patient);
             }
-            // Show patient case info popup
+            // Update patient case info in right sidebar panel
             if (patient != null) {
               String caseId =
                   (String) patient.getTagValue(DownloadManager.PATIENT_CASE_ID);
-              if (caseId != null) {
-                PatientCaseInfoDialog.show(
-                    GuiUtils.getUICore().getApplicationWindow(), caseId);
-              }
+              PatientCaseInfoPanel.updateGlobal(caseId);
+            } else {
+              PatientCaseInfoPanel.updateGlobal(null);
             }
           }
         };
@@ -1437,6 +1436,7 @@ public class DicomExplorer extends PluginTool implements DataExplorerView, Serie
   public DataExplorerModel getDataExplorerModel() {
     return model;
   }
+
 
   @Override
   protected void changeToolWindowAnchor(CLocation clocation) {

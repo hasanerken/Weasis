@@ -208,7 +208,7 @@
     },
     {
       "code": "org.apache.sling.commons.log.file.activate",
-      "value": "false",
+      "value": "true",
       "description": "Activation of rolling log files",
       "type": "F",
       "javaType": "BOOLEAN",

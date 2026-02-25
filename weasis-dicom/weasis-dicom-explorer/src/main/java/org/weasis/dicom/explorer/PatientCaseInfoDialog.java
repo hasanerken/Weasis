@@ -373,9 +373,13 @@ public class PatientCaseInfoDialog {
     for (JsonNode order : orders) {
       List<JsonNode> anamnesisList = toList(order.get("anamnesis"));
       for (JsonNode anam : anamnesisList) {
-        String id = textVal(anam, "id");
-        // Deduplicate by ID, or by complaints content if no ID
-        String dedupeKey = id.isEmpty() ? textVal(anam, "complaints") : id;
+        // Deduplicate by content (not ID — HL7 gives different IDs per order for same content)
+        String contentKey = textVal(anam, "complaints") + "|"
+            + textVal(anam, "history") + "|"
+            + textVal(anam, "symptoms") + "|"
+            + textVal(anam, "pre_diagnosis") + "|"
+            + textVal(anam, "cure");
+        String dedupeKey = contentKey.trim();
         if (!dedupeKey.isEmpty() && seenIds.add(dedupeKey)) {
           uniqueAnamnesis.add(anam);
         }

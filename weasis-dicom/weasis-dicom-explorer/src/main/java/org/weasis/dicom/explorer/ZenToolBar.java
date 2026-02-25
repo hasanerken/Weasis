@@ -57,17 +57,17 @@ public class ZenToolBar extends WtoolBar {
     btnImajEksik.addActionListener(e -> updateScope("missing_image", btnImajEksik, "\u0130maj Eksik"));
     add(btnImajEksik);
 
-    // Anamnez button (soft muted blue) - reopens patient info popup
+    // Anamnez button (soft muted blue) - refreshes the right-side Anamnez panel
     JButton btnAnamnez = new JButton("Anamnez");
     btnAnamnez.setForeground(new Color(130, 160, 190));
-    btnAnamnez.setToolTipText("Hasta klinik bilgilerini g\u00f6ster");
+    btnAnamnez.setToolTipText("Hasta klinik bilgilerini yenile ve g\u00f6ster");
     btnAnamnez.addActionListener(e -> {
       String caseId = getSelectedCaseId();
       if (caseId == null) {
         LOGGER.debug("No patient selected for Anamnez");
         return;
       }
-      PatientCaseInfoDialog.show(this, caseId);
+      PatientCaseInfoPanel.refreshGlobal();
     });
     add(btnAnamnez);
 

@@ -85,8 +85,10 @@ if not exist "%OUTPUT_DIR%" mkdir "%OUTPUT_DIR%"
   --main-jar weasis-launcher.jar ^
   --main-class org.weasis.launcher.AppLauncher ^
   --add-modules "%JDK_MODULES%" ^
-  --java-options "-Xms64m" ^
-  --java-options "-Xmx768m" ^
+  --java-options "-Xms512m" ^
+  --java-options "-Xmx6g" ^
+  --java-options "-XX:+UseG1GC" ^
+  --java-options "-XX:MaxGCPauseMillis=200" ^
   --java-options "--add-opens=java.base/java.lang=ALL-UNNAMED" ^
   --java-options "--add-opens=java.base/java.lang.reflect=ALL-UNNAMED" ^
   --java-options "--add-opens=java.base/java.text=ALL-UNNAMED" ^
@@ -98,6 +100,8 @@ if not exist "%OUTPUT_DIR%" mkdir "%OUTPUT_DIR%"
   --java-options "--add-opens=java.desktop/javax.swing.plaf.basic=ALL-UNNAMED" ^
   --java-options "--add-opens=java.desktop/sun.awt=ALL-UNNAMED" ^
   --java-options "--add-opens=java.desktop/sun.java2d=ALL-UNNAMED" ^
+  --java-options "-Djdk.xml.maxGeneralEntitySizeLimit=0" ^
+  --java-options "-Djdk.xml.totalEntitySizeLimit=0" ^
   --icon "%ICON%" ^
   --app-version "%APP_VERSION%" ^
   --dest "%OUTPUT_DIR%"

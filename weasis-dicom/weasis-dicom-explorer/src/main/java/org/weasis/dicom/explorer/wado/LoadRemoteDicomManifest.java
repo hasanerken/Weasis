@@ -166,15 +166,21 @@ public class LoadRemoteDicomManifest extends ExplorerTask<Boolean, String> {
   }
 
   private void downloadManifest(String path) throws DownloadException {
+    LOGGER.info("downloadManifest START: {}", path);
     try {
       URI uri = NetworkUtil.getURI(path);
+      LOGGER.info("Parsed URI: scheme={}, host={}, path={}, query length={}",
+          uri.getScheme(), uri.getHost(), uri.getPath(),
+          uri.getQuery() != null ? uri.getQuery().length() : 0);
 
       // Extract auth token and API base URL from the manifest URL for later API calls
       String query = uri.getQuery();
       if (query != null) {
         for (String param : query.split("&")) {
           if (param.startsWith("token=")) {
-            DownloadManager.setAuthToken(param.substring(6));
+            String token = param.substring(6);
+            DownloadManager.setAuthToken(token);
+            LOGGER.info("Auth token extracted ({} chars)", token.length());
           }
         }
       }
@@ -184,10 +190,13 @@ public class LoadRemoteDicomManifest extends ExplorerTask<Boolean, String> {
         idx = uriStr.indexOf("/v2/patients/zen-xml");
       }
       if (idx > 0) {
-        DownloadManager.setApiBaseUrl(uriStr.substring(0, idx));
+        String baseUrl = uriStr.substring(0, idx);
+        DownloadManager.setApiBaseUrl(baseUrl);
+        LOGGER.info("API base URL: {}", baseUrl);
       }
 
       Collection<LoadSeries> wadoTasks = DownloadManager.buildDicomSeriesFromXml(uri, dicomModel);
+      LOGGER.info("XML manifest parsed: {} series to download", wadoTasks.size());
 
       loadSeriesList.addAll(wadoTasks);
       boolean downloadImmediately =
@@ -199,7 +208,7 @@ public class LoadRemoteDicomManifest extends ExplorerTask<Boolean, String> {
         LoadSeries.notifyDownloadCompletion(dicomModel);
       }
     } catch (URISyntaxException | MalformedURLException e) {
-      LOGGER.error("Loading manifest", e);
+      LOGGER.error("Loading manifest - invalid URI: {}", path, e);
     }
   }
 

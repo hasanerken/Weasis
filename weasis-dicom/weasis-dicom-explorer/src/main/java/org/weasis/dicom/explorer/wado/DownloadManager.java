@@ -316,6 +316,9 @@ public class DownloadManager {
       // disable external entities for security
       factory.setProperty(XMLInputFactory.IS_SUPPORTING_EXTERNAL_ENTITIES, Boolean.FALSE);
       factory.setProperty(XMLInputFactory.SUPPORT_DTD, Boolean.FALSE);
+      // Increase XML limits for large manifests (100+ cases)
+      System.setProperty("jdk.xml.maxGeneralEntitySizeLimit", "0");
+      System.setProperty("jdk.xml.totalEntitySizeLimit", "0");
 
       String path = uri.getPath();
       URLParameters urlParameters =
@@ -324,20 +327,27 @@ public class DownloadManager {
               StringUtil.getInt(System.getProperty("UrlConnectionTimeout"), 7000),
               StringUtil.getInt(System.getProperty("UrlReadTimeout"), 15000) * 2);
 
+      LOGGER.info(
+          "Connecting to XML manifest: {} (connectTimeout={}ms, readTimeout={}ms)",
+          uri, urlParameters.getConnectTimeout(), urlParameters.getReadTimeout());
+
       ClosableURLConnection urlConnection =
           NetworkUtil.getUrlConnection(uri.toURL(), urlParameters);
 
-      LOGGER.info("Downloading XML manifest: {}", path);
+      LOGGER.info("Connection established, downloading XML manifest: {}", path);
       InputStream urlInputStream = urlConnection.getInputStream();
+      LOGGER.info("InputStream obtained for manifest download");
 
       if (path.endsWith(".gz")) {
         stream = new BufferedInputStream(new GZIPInputStream(urlInputStream));
       } else if (path.endsWith(".xml")) {
         stream = urlInputStream;
       } else {
-        // In case wado file has no extension
+        // In case wado file has no extension (e.g. zen-xml API endpoint)
+        LOGGER.info("Path '{}' has no .xml/.gz extension, downloading to temp file first", path);
         File outFile = File.createTempFile("wado_", "", AppProperties.APP_TEMP_DIR); // NON-NLS
         FileUtil.writeStreamWithIOException(urlInputStream, outFile);
+        LOGGER.info("Downloaded manifest to temp file: {} ({} bytes)", outFile, outFile.length());
         if (MimeInspector.isMatchingMimeTypeFromMagicNumber(
             outFile, "application/x-gzip")) { // NON-NLS
           stream = new BufferedInputStream(new GZIPInputStream(new FileInputStream(outFile)));
@@ -353,6 +363,7 @@ public class DownloadManager {
         tempFile = File.createTempFile("wado_", ".xml", AppProperties.APP_TEMP_DIR); // NON-NLS
         FileUtil.writeStreamWithIOException(stream, tempFile);
       }
+      LOGGER.info("XML manifest saved to: {} ({} bytes)", tempFile, tempFile.length());
       xmler = factory.createXMLStreamReader(new FileInputStream(tempFile));
 
       Source xmlFile = new StAXSource(xmler);
