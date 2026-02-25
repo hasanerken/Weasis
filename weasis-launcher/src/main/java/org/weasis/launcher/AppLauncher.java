@@ -144,6 +144,8 @@ public class AppLauncher extends WeasisLauncher implements Singleton.SingletonAp
         commands.add(cmds[i]);
       }
     }
+    // Transform zen:open commands to dicom:get -w format
+    commands = transformZenCommands(commands);
     LOGGER.info("Commands from URI: {}", commands);
 
     if (instance.frameworkLoaded) {
@@ -183,6 +185,53 @@ public class AppLauncher extends WeasisLauncher implements Singleton.SingletonAp
         Thread.currentThread().interrupt();
       }
     }
+  }
+
+  /**
+   * Transform zen:open commands to dicom:get -w format.
+   * zen:open -t <token> [-s <baseUrl>] -p <id1> -p <id2>...
+   * becomes: dicom:get -w "<baseUrl>/v2/patients/weasis-xml?caseIDs=<ids>&token=<token>"
+   */
+  private static List<String> transformZenCommands(List<String> commands) {
+    List<String> result = new java.util.ArrayList<>();
+    for (String cmd : commands) {
+      if (cmd.startsWith("zen:open ")) {
+        String token = null;
+        String baseUrl = null;
+        List<String> caseIds = new java.util.ArrayList<>();
+        String[] parts = cmd.split("\\s+");
+        for (int i = 1; i < parts.length; i++) {
+          switch (parts[i]) {
+            case "-t" -> { if (i + 1 < parts.length) token = parts[++i]; }
+            case "-s" -> { if (i + 1 < parts.length) baseUrl = parts[++i]; }
+            case "-p" -> { if (i + 1 < parts.length) caseIds.add(parts[++i]); }
+            default -> LOGGER.debug("Unknown zen:open flag: {}", parts[i]);
+          }
+        }
+        if (token != null && !caseIds.isEmpty()) {
+          if (baseUrl == null) {
+            baseUrl =
+                System.getProperty(
+                    "zenpacs.api.base.url", "https://api.zenpacs.com.tr/api"); // NON-NLS
+          }
+          String ids = String.join(",", caseIds);
+          String transformed =
+              "dicom:get -w \""
+                  + baseUrl
+                  + "/v2/patients/weasis-xml?caseIDs="
+                  + ids
+                  + "&token="
+                  + token
+                  + "\""; // NON-NLS
+          LOGGER.info("Transformed zen:open to: {}", transformed);
+          result.add(transformed);
+          continue;
+        }
+        LOGGER.warn("Invalid zen:open command (missing token or caseIds): {}", cmd);
+      }
+      result.add(cmd);
+    }
+    return result;
   }
 
   private static void handleOpenFile(OpenFilesEvent e, AppLauncher instance) {

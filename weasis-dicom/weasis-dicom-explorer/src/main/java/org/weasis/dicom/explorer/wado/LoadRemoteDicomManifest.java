@@ -34,6 +34,7 @@ import org.weasis.core.util.StringUtil;
 import org.weasis.core.util.StringUtil.Suffix;
 import org.weasis.dicom.explorer.DicomModel;
 import org.weasis.dicom.explorer.ExplorerTask;
+import org.weasis.dicom.explorer.HangingProtocols;
 import org.weasis.dicom.explorer.Messages;
 import org.weasis.dicom.explorer.PluginOpeningStrategy;
 import org.weasis.dicom.explorer.pref.download.DicomExplorerPrefView;
@@ -170,6 +171,22 @@ public class LoadRemoteDicomManifest extends ExplorerTask<Boolean, String> {
   private void downloadManifest(String path) throws DownloadException {
     try {
       URI uri = NetworkUtil.getURI(path);
+
+      // Extract auth token and API base URL from the manifest URL for later API calls
+      String query = uri.getQuery();
+      if (query != null) {
+        for (String param : query.split("&")) {
+          if (param.startsWith("token=")) {
+            DownloadManager.setAuthToken(param.substring(6));
+          }
+        }
+      }
+      String uriStr = uri.toString();
+      int idx = uriStr.indexOf("/v2/patients/weasis-xml");
+      if (idx > 0) {
+        DownloadManager.setApiBaseUrl(uriStr.substring(0, idx));
+      }
+
       Collection<LoadSeries> wadoTasks = DownloadManager.buildDicomSeriesFromXml(uri, dicomModel);
 
       loadSeriesList.addAll(wadoTasks);
@@ -189,8 +206,19 @@ public class LoadRemoteDicomManifest extends ExplorerTask<Boolean, String> {
   private void startDownloadingSeries(
       Collection<LoadSeries> wadoTasks, boolean downloadImmediately, boolean retry) {
     if (!wadoTasks.isEmpty()) {
-      PluginOpeningStrategy openingStrategy =
-          new PluginOpeningStrategy(DownloadManager.getOpeningViewer());
+      // Use ONE_PATIENT mode when loading multiple studies to prevent distracting
+      // tab-switching. Only the first patient opens a viewer tab; others download
+      // silently in the background. The radiologist can switch studies manually.
+      HangingProtocols.OpeningViewer mode =
+          wadoTasks.size() > 1
+              ? HangingProtocols.OpeningViewer.ONE_PATIENT
+              : DownloadManager.getOpeningViewer();
+      LOGGER.info(
+          "startDownloadingSeries: wadoTasks={}, mode={}, retry={}",
+          wadoTasks.size(),
+          mode,
+          retry);
+      PluginOpeningStrategy openingStrategy = new PluginOpeningStrategy(mode);
       if (!retry) {
         openingStrategy.prepareImport();
       }

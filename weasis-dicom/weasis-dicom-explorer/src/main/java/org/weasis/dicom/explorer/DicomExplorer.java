@@ -26,6 +26,7 @@ import java.awt.font.FontRenderContext;
 import java.beans.PropertyChangeEvent;
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
@@ -40,6 +41,8 @@ import java.util.function.Function;
 import javax.swing.Action;
 import javax.swing.BorderFactory;
 import javax.swing.ButtonGroup;
+import javax.swing.DefaultListCellRenderer;
+import javax.swing.JList;
 import javax.swing.Icon;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
@@ -78,7 +81,9 @@ import org.weasis.core.api.util.ResourceUtil.ResourceIconPath;
 import org.weasis.core.ui.docking.PluginTool;
 import org.weasis.core.ui.editor.SeriesViewerEvent;
 import org.weasis.core.ui.editor.SeriesViewerEvent.EVENT;
+import org.weasis.core.ui.editor.SeriesViewerFactory;
 import org.weasis.core.ui.editor.SeriesViewerListener;
+import org.weasis.core.ui.editor.ViewerPluginBuilder;
 import org.weasis.core.ui.editor.image.ImageViewerPlugin;
 import org.weasis.core.ui.editor.image.SequenceHandler;
 import org.weasis.core.ui.editor.image.ViewCanvas;
@@ -94,7 +99,9 @@ import org.weasis.dicom.codec.KOSpecialElement;
 import org.weasis.dicom.codec.TagD;
 import org.weasis.dicom.codec.TagD.Level;
 import org.weasis.dicom.explorer.HangingProtocols.OpeningViewer;
+import org.weasis.dicom.explorer.wado.DownloadManager;
 import org.weasis.dicom.explorer.wado.LoadSeries;
+import org.weasis.dicom.explorer.wado.StudyDownloadTracker;
 
 public class DicomExplorer extends PluginTool implements DataExplorerView, SeriesViewerListener {
 
@@ -162,17 +169,107 @@ public class DicomExplorer extends PluginTool implements DataExplorerView, Serie
     ItemListener patientChangeListener =
         e -> {
           if (e.getStateChange() == ItemEvent.SELECTED) {
-            selectPatient(getSelectedPatient());
+            MediaSeriesGroup patient = getSelectedPatient();
+            selectPatient(patient);
             selectedPatient.revalidate();
             selectedPatient.repaint();
+            // Auto-open first series in viewer when patient is selected from dropdown
+            if (patient != null && !isPatientHasOpenSeries(patient)) {
+              openFirstSeriesForPatient(patient);
+            }
+            // Show patient case info popup
+            if (patient != null) {
+              String caseId =
+                  (String) patient.getTagValue(DownloadManager.PATIENT_CASE_ID);
+              if (caseId != null) {
+                PatientCaseInfoDialog.show(
+                    GuiUtils.getUICore().getApplicationWindow(), caseId);
+              }
+            }
           }
         };
     patientCombobox.addItemListener(patientChangeListener);
+
+    // Custom renderer: patients whose ALL studies are fully loaded show green with checkmark
+    patientCombobox.setRenderer(
+        new DefaultListCellRenderer() {
+          @Override
+          public Component getListCellRendererComponent(
+              JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
+            Component c =
+                super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+            if (value instanceof MediaSeriesGroupNode patient) {
+              // Check if ALL studies for this patient are complete
+              Collection<MediaSeriesGroup> studies = model.getChildren(patient);
+              boolean hasStudies = !studies.isEmpty();
+              boolean allComplete = hasStudies;
+              for (MediaSeriesGroup studyGroup : studies) {
+                String uid = TagD.getTagValue(studyGroup, Tag.StudyInstanceUID, String.class);
+                if (uid == null || !StudyDownloadTracker.getInstance().isStudyComplete(uid)) {
+                  allComplete = false;
+                  break;
+                }
+              }
+              if (allComplete) {
+                String name = getText().replace("<", "&lt;").replace(">", "&gt;");
+                setText("<html><font color='#22B14C'>\u2713 " + name + "</font></html>");
+              }
+            }
+            return c;
+          }
+        });
+
     studyCombobox.setMaximumRowCount(15);
     // do not use addElement
     modelStudy.insertElementAt(ALL_STUDIES, 0);
     modelStudy.setSelectedItem(ALL_STUDIES);
     studyCombobox.addItemListener(studyItemListener);
+
+    // Custom renderer: completed studies show green with checkmark
+    studyCombobox.setRenderer(
+        new DefaultListCellRenderer() {
+          @Override
+          public Component getListCellRendererComponent(
+              JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
+            Component c =
+                super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+            if (value instanceof MediaSeriesGroupNode study) {
+              String uid = TagD.getTagValue(study, Tag.StudyInstanceUID, String.class);
+              if (uid != null && StudyDownloadTracker.getInstance().isStudyComplete(uid)) {
+                String name = getText().replace("<", "&lt;").replace(">", "&gt;");
+                setText("<html><font color='#22B14C'>\u2713 " + name + "</font></html>");
+              }
+            }
+            return c;
+          }
+        });
+
+    // Auto-focus callback: when a study completes, update UI and optionally focus
+    StudyDownloadTracker.getInstance()
+        .setOnStudyComplete(
+            completedStudy -> {
+              GuiExecutor.execute(
+                  () -> {
+                    // Repaint both comboboxes to update green checkmark indicators
+                    patientCombobox.repaint();
+                    studyCombobox.repaint();
+
+                    // Only auto-focus the FIRST completed study to avoid distracting
+                    // the radiologist while they are reading. Subsequent completions
+                    // just update the green indicator without switching tabs.
+                    if (StudyDownloadTracker.getInstance().shouldAutoFocus()) {
+                      var viewerPlugins = GuiUtils.getUICore().getViewerPlugins();
+                      synchronized (viewerPlugins) {
+                        for (var plugin : viewerPlugins) {
+                          if (completedStudy.equals(plugin.getGroupID())) {
+                            plugin.setSelectedAndGetFocus();
+                            break;
+                          }
+                        }
+                      }
+                    }
+                  });
+            });
 
     thumbnailView.setBorder(BorderFactory.createEmptyBorder()); // remove default line
     thumbnailView.getVerticalScrollBar().setUnitIncrement(16);
@@ -946,6 +1043,25 @@ public class DicomExplorer extends PluginTool implements DataExplorerView, Serie
     return false;
   }
 
+  private void openFirstSeriesForPatient(MediaSeriesGroup patient) {
+    synchronized (model) {
+      for (MediaSeriesGroup study : model.getChildren(patient)) {
+        for (MediaSeriesGroup seq : model.getChildren(study)) {
+          if (seq instanceof Series<?> series && !DicomModel.isHiddenModality(series)) {
+            String mime = series.getMimeType();
+            if (mime != null && !"sr/dicom".equals(mime)) {
+              SeriesViewerFactory plugin = GuiUtils.getUICore().getViewerFactory(mime);
+              if (plugin != null && !(plugin instanceof MimeSystemAppFactory)) {
+                ViewerPluginBuilder.openSequenceInDefaultPlugin(series, model, true, true);
+                return;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
   public void selectPatient(MediaSeriesGroup patient) {
     if (patient != null && !selectedPatient.isPatient(patient)) {
       selectionList.clear();
@@ -1257,6 +1373,8 @@ public class DicomExplorer extends PluginTool implements DataExplorerView, Serie
           if (newVal instanceof ExplorerTask) {
             removeTaskToGlobalProgression((ExplorerTask<?, ?>) newVal);
           }
+          // Repaint study combobox to refresh completion indicators
+          studyCombobox.repaint();
           MediaSeriesGroupNode patient = getSelectedPatient();
           if (patient != null) {
             koOpen.setVisible(
