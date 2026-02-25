@@ -39,7 +39,7 @@ public class ZenToolBar extends WtoolBar {
     // Okundu button (soft muted green)
     btnOkundu = new JButton("Okundu");
     btnOkundu.setForeground(new Color(140, 180, 140));
-    btnOkundu.setToolTipText("Hasta durumunu okundu olarak i\u015faretle");
+    btnOkundu.setToolTipText("Hasta durumunu okundu olarak i\u015faretle (Ctrl+O)");
     btnOkundu.addActionListener(e -> updateStatus("dictated", btnOkundu, "Okundu"));
     add(btnOkundu);
 
@@ -72,6 +72,11 @@ public class ZenToolBar extends WtoolBar {
     add(btnAnamnez);
 
     allButtons = new JButton[] {btnOkundu, btnOkunmadi, btnImajEksik};
+  }
+
+  /** Trigger Okundu action via keyboard shortcut */
+  public void triggerOkundu() {
+    updateStatus("dictated", btnOkundu, "Okundu");
   }
 
   private String getSelectedCaseId() {

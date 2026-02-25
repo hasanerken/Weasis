@@ -299,9 +299,31 @@ public class PatientCaseInfoDialog {
     if (userNotes != null && userNotes.isArray() && !userNotes.isEmpty()) {
       sb.append("<h3 style='color:#64B5F6;border-bottom:2px solid #64B5F6;padding-bottom:4px;'>Kullan\u0131c\u0131 Notlar\u0131</h3>");
       for (JsonNode note : userNotes) {
-        String noteText = note.isTextual() ? note.asText() : note.toString();
-        sb.append("<div style='background:#2A3A2A;padding:6px;border-radius:4px;margin-bottom:4px;border-left:3px solid #66BB6A;color:#E0E0E0;'>")
-            .append(esc(noteText)).append("</div>");
+        sb.append("<div style='background:#2A3A2A;padding:6px;border-radius:4px;margin-bottom:4px;border-left:3px solid #66BB6A;color:#E0E0E0;'>");
+        if (note.isTextual()) {
+          sb.append(esc(note.asText()));
+        } else if (note.isObject()) {
+          String noteText = textVal(note, "text");
+          String author = textVal(note, "author");
+          String createdAt = textVal(note, "created_at");
+          if (!noteText.isEmpty()) {
+            sb.append(esc(noteText).replace("\n", "<br/>"));
+          }
+          if (!author.isEmpty() || !createdAt.isEmpty()) {
+            sb.append("<div style='margin-top:4px;font-size:9px;color:#999;'>");
+            if (!author.isEmpty()) {
+              sb.append(esc(author));
+            }
+            if (!createdAt.isEmpty()) {
+              String dateOnly = createdAt.length() >= 10 ? createdAt.substring(0, 10) : createdAt;
+              sb.append(author.isEmpty() ? "" : " \u2014 ").append(esc(dateOnly));
+            }
+            sb.append("</div>");
+          }
+        } else {
+          sb.append(esc(note.toString()));
+        }
+        sb.append("</div>");
       }
     }
 

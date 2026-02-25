@@ -19,6 +19,11 @@ import java.awt.Toolkit;
 import java.awt.event.AWTEventListener;
 import java.awt.event.MouseEvent;
 import java.io.File;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.URI;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
 import javax.sound.sampled.AudioFormat;
@@ -173,14 +178,14 @@ public class AudioRecorderPanel extends JPanel {
 
     JPanel controls = new JPanel(new FlowLayout(FlowLayout.CENTER, 8, 0));
     controls.setOpaque(false);
-    btnRecord = createControlButton("\u25CF", "Kay\u0131t Ba\u015flat", RECORD_RED);
+    btnRecord = createControlButton("\u25CF", "Kay\u0131t Ba\u015flat (Ctrl+R)", RECORD_RED);
     btnRecord.addActionListener(e -> onRecord());
     controls.add(btnRecord);
-    btnPause = createControlButton("\u2759\u2759", "Duraklat", WARN_AMBER);
+    btnPause = createControlButton("\u2759\u2759", "Duraklat/Devam (Ctrl+T)", WARN_AMBER);
     btnPause.setEnabled(false);
     btnPause.addActionListener(e -> onPause());
     controls.add(btnPause);
-    btnStop = createControlButton("\u25A0", "Durdur", TEXT_COLOR);
+    btnStop = createControlButton("\u25A0", "Durdur (Ctrl+R)", TEXT_COLOR);
     btnStop.setEnabled(false);
     btnStop.addActionListener(e -> onStop());
     controls.add(btnStop);
@@ -388,6 +393,7 @@ public class AudioRecorderPanel extends JPanel {
             entry.serverFilename = vi.filename;
             entry.serverSize = vi.size;
             entry.uploadedBy = vi.uploadedBy;
+            entry.serverUrl = vi.url;
             localRecordings.add(entry);
           }
         }
@@ -466,8 +472,10 @@ public class AudioRecorderPanel extends JPanel {
     actions.setLayout(new BoxLayout(actions, BoxLayout.X_AXIS));
     actions.setOpaque(false);
 
-    // Play button (for local WAV files)
-    if (entry.localFile != null && entry.localFile.exists()) {
+    // Play button (local files or server recordings with URL)
+    boolean canPlay = (entry.localFile != null && entry.localFile.exists())
+        || (entry.serverUrl != null && !entry.serverUrl.isEmpty());
+    if (canPlay) {
       JButton playBtn = createSmallIconButton("\u25B6", "Dinle", ACCENT_BLUE);
       playBtn.addActionListener(e -> playRecording(entry, playBtn));
       actions.add(playBtn);
@@ -490,10 +498,12 @@ public class AudioRecorderPanel extends JPanel {
       actions.add(uploaded);
     }
 
-    // Delete button
-    JButton deleteBtn = createSmallIconButton("\u2715", "Sil", new Color(190, 130, 130));
-    deleteBtn.addActionListener(e -> deleteRecording(entry, index));
-    actions.add(deleteBtn);
+    // Delete button (only for local files that haven't been uploaded)
+    if (entry.localFile != null && !entry.uploaded) {
+      JButton deleteBtn = createSmallIconButton("\u2715", "Sil", new Color(190, 130, 130));
+      deleteBtn.addActionListener(e -> deleteRecording(entry, index));
+      actions.add(deleteBtn);
+    }
 
     row.add(actions, BorderLayout.EAST);
     return row;
@@ -515,23 +525,58 @@ public class AudioRecorderPanel extends JPanel {
     playing = true;
 
     playbackThread = new Thread(() -> {
-      try (AudioInputStream ais = AudioSystem.getAudioInputStream(entry.localFile)) {
-        AudioFormat fmt = ais.getFormat();
-        DataLine.Info info = new DataLine.Info(SourceDataLine.class, fmt);
-        try (SourceDataLine sdl = (SourceDataLine) AudioSystem.getLine(info)) {
-          sdl.open(fmt);
-          sdl.start();
-
-          byte[] buf = new byte[4096];
-          int bytesRead;
-          while (playing && (bytesRead = ais.read(buf, 0, buf.length)) != -1) {
-            sdl.write(buf, 0, bytesRead);
+      File fileToPlay = entry.localFile;
+      File tempFile = null;
+      try {
+        // If no local file, download from server
+        if (fileToPlay == null || !fileToPlay.exists()) {
+          if (entry.serverUrl != null && !entry.serverUrl.isEmpty()) {
+            SwingUtilities.invokeLater(() -> {
+              statusLabel.setText("\u0130ndiriliyor...");
+              statusLabel.setForeground(WARN_AMBER);
+            });
+            tempFile = File.createTempFile("zenvoice_", ".wav");
+            tempFile.deleteOnExit();
+            String token = DownloadManager.getAuthToken();
+            HttpURLConnection conn = (HttpURLConnection) new URI(entry.serverUrl).toURL().openConnection();
+            if (token != null) {
+              conn.setRequestProperty("Authorization", "Bearer " + token);
+            }
+            conn.setConnectTimeout(15000);
+            conn.setReadTimeout(30000);
+            try (InputStream is = conn.getInputStream()) {
+              Files.copy(is, tempFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+            } finally {
+              conn.disconnect();
+            }
+            fileToPlay = tempFile;
+            SwingUtilities.invokeLater(() -> {
+              statusLabel.setText("Dinleniyor...");
+              statusLabel.setForeground(ACCENT_BLUE);
+            });
+          } else {
+            return;
           }
+        }
 
-          if (playing) {
-            sdl.drain(); // Wait for buffer to finish
+        try (AudioInputStream ais = AudioSystem.getAudioInputStream(fileToPlay)) {
+          AudioFormat fmt = ais.getFormat();
+          DataLine.Info info = new DataLine.Info(SourceDataLine.class, fmt);
+          try (SourceDataLine sdl = (SourceDataLine) AudioSystem.getLine(info)) {
+            sdl.open(fmt);
+            sdl.start();
+
+            byte[] buf = new byte[4096];
+            int bytesRead;
+            while (playing && (bytesRead = ais.read(buf, 0, buf.length)) != -1) {
+              sdl.write(buf, 0, bytesRead);
+            }
+
+            if (playing) {
+              sdl.drain();
+            }
+            sdl.stop();
           }
-          sdl.stop();
         }
       } catch (Exception ex) {
         LOGGER.error("Playback error: {}", ex.getMessage());
@@ -541,6 +586,9 @@ public class AudioRecorderPanel extends JPanel {
         });
       } finally {
         playing = false;
+        if (tempFile != null) {
+          tempFile.delete();
+        }
         SwingUtilities.invokeLater(() -> {
           statusLabel.setText("Haz\u0131r");
           statusLabel.setForeground(new Color(150, 150, 150));
@@ -566,12 +614,49 @@ public class AudioRecorderPanel extends JPanel {
     }
   }
 
+  /** Ctrl+R: toggle recording — if idle, start; if recording/paused, stop */
+  public void triggerRecord() {
+    if (!micAvailable) return;
+    AudioRecorderService.State state = recorderService.getState();
+    if (state == AudioRecorderService.State.IDLE) {
+      if (!expanded) toggleExpanded();
+      onRecord();
+    } else {
+      onStop();
+    }
+  }
+
+  /** Ctrl+T: toggle pause/resume while recording */
+  public void triggerPauseResume() {
+    if (!micAvailable) return;
+    AudioRecorderService.State state = recorderService.getState();
+    if (state == AudioRecorderService.State.RECORDING || state == AudioRecorderService.State.PAUSED) {
+      onPause();
+    }
+  }
+
+  /** Ctrl+Y: upload the most recent local unuploaded recording */
+  public void triggerUpload() {
+    if (!micAvailable) return;
+    // Find last unuploaded local recording
+    for (int i = localRecordings.size() - 1; i >= 0; i--) {
+      RecordingEntry entry = localRecordings.get(i);
+      if (entry.localFile != null && !entry.uploaded) {
+        // Create a temporary button reference for the upload callback
+        uploadRecording(entry, null);
+        return;
+      }
+    }
+  }
+
   private void uploadRecording(RecordingEntry entry, JButton uploadBtn) {
     String caseId = getSelectedCaseId();
     if (caseId == null || entry.localFile == null) return;
 
-    uploadBtn.setEnabled(false);
-    uploadBtn.setText("...");
+    if (uploadBtn != null) {
+      uploadBtn.setEnabled(false);
+      uploadBtn.setText("...");
+    }
     statusLabel.setText("Y\u00fckleniyor...");
     statusLabel.setForeground(WARN_AMBER);
 
@@ -682,6 +767,7 @@ public class AudioRecorderPanel extends JPanel {
     String serverFilename;
     long serverSize;
     String uploadedBy;
+    String serverUrl;
 
     RecordingEntry(File localFile, boolean uploaded, String serverKey) {
       this.localFile = localFile;
