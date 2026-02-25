@@ -9,8 +9,13 @@
  */
 package org.weasis.dicom.explorer;
 
+import java.awt.Window;
 import java.util.Hashtable;
 import java.util.List;
+import javax.swing.JFrame;
+import javax.swing.JLayeredPane;
+import javax.swing.SwingUtilities;
+import javax.swing.Timer;
 import org.osgi.service.component.ComponentContext;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Deactivate;
@@ -37,10 +42,38 @@ public class DicomExplorerFactory implements DataExplorerViewFactory {
       List<Toolbar> toolbar = GuiUtils.getUICore().getExplorerPluginToolbars();
       toolbar.add(new ImportToolBar(5, explorer));
       toolbar.add(new ExportToolBar(7, explorer));
+      toolbar.add(new ZenToolBar(200, explorer));
       ViewerPluginBuilder.DefaultDataModel.firePropertyChange(
           new ObservableEvent(ObservableEvent.BasicAction.NULL_SELECTION, explorer, null, null));
+
+      // Install floating audio recorder panel after frame is ready
+      DicomExplorer ref = explorer;
+      Timer installTimer = new Timer(2000, e -> {
+        SwingUtilities.invokeLater(() -> installAudioRecorder(ref));
+      });
+      installTimer.setRepeats(false);
+      installTimer.start();
     }
     return explorer;
+  }
+
+  private void installAudioRecorder(DicomExplorer explorerRef) {
+    try {
+      Window window = GuiUtils.getUICore().getApplicationWindow();
+      System.out.println("[ZenPACS] installAudioRecorder: window=" + (window != null ? window.getClass().getName() : "null"));
+      if (window instanceof JFrame frame) {
+        JLayeredPane layeredPane = frame.getLayeredPane();
+        System.out.println("[ZenPACS] layeredPane size: " + layeredPane.getWidth() + "x" + layeredPane.getHeight());
+        AudioRecorderPanel recorderPanel = new AudioRecorderPanel(explorerRef);
+        recorderPanel.installInLayeredPane(layeredPane);
+        System.out.println("[ZenPACS] AudioRecorderPanel installed");
+      } else {
+        System.out.println("[ZenPACS] Window is not JFrame, skipping audio recorder");
+      }
+    } catch (Exception e) {
+      System.err.println("[ZenPACS] installAudioRecorder error: " + e.getMessage());
+      e.printStackTrace();
+    }
   }
 
   // ================================================================================

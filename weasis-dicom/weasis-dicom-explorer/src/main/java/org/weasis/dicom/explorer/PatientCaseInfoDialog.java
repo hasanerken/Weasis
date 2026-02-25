@@ -11,17 +11,18 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
-import java.awt.Font;
 import java.awt.GraphicsEnvironment;
 import java.awt.Rectangle;
 import java.awt.Window;
+import java.awt.Toolkit;
+import java.awt.event.AWTEventListener;
+import java.awt.event.MouseEvent;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -44,6 +45,7 @@ public class PatientCaseInfoDialog {
   private static final Logger LOGGER = LoggerFactory.getLogger(PatientCaseInfoDialog.class);
   private static final ObjectMapper MAPPER = new ObjectMapper();
   private static JDialog currentDialog;
+  private static AWTEventListener dismissListener;
 
   public static void show(Component parent, String patientCaseId) {
     String token = DownloadManager.getAuthToken();
@@ -87,7 +89,7 @@ public class PatientCaseInfoDialog {
       protected void done() {
         try {
           JsonNode data = get();
-          showDialog(parent, data);
+          showDialog(parent, data, patientCaseId);
         } catch (Exception e) {
           LOGGER.error("Failed to fetch patient case info", e);
         }
@@ -95,8 +97,9 @@ public class PatientCaseInfoDialog {
     }.execute();
   }
 
-  private static void showDialog(Component parent, JsonNode data) {
-    // Auto-close previous popup
+  private static void showDialog(Component parent, JsonNode data, String patientCaseId) {
+    // Auto-close previous popup and clean up listener
+    removeDismissListener();
     if (currentDialog != null) {
       currentDialog.dispose();
       currentDialog = null;
@@ -108,6 +111,17 @@ public class PatientCaseInfoDialog {
     JDialog dialog = new JDialog(owner, "Hasta Bilgileri", JDialog.ModalityType.MODELESS);
     dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
     currentDialog = dialog;
+
+    // Clean up AWTEventListener when dialog is closed via X button
+    dialog.addWindowListener(new java.awt.event.WindowAdapter() {
+      @Override
+      public void windowClosed(java.awt.event.WindowEvent e) {
+        removeDismissListener();
+        if (currentDialog == dialog) {
+          currentDialog = null;
+        }
+      }
+    });
 
     // 70% width, 50% height
     Rectangle screenBounds =
@@ -148,6 +162,51 @@ public class PatientCaseInfoDialog {
 
     dialog.getContentPane().add(mainPanel, BorderLayout.CENTER);
     dialog.setVisible(true);
+
+    // Dismiss when clicking outside — install listener after 500ms so initial focus settles
+    javax.swing.Timer installTimer = new javax.swing.Timer(500, evt -> {
+      // Don't install if dialog was already closed
+      if (!dialog.isShowing()) return;
+      removeDismissListener();
+      dismissListener = event -> {
+        if (event.getID() == MouseEvent.MOUSE_PRESSED) {
+          try {
+            if (!dialog.isShowing()) {
+              SwingUtilities.invokeLater(PatientCaseInfoDialog::removeDismissListener);
+              return;
+            }
+            MouseEvent me = (MouseEvent) event;
+            java.awt.Point screenPoint = me.getLocationOnScreen();
+            java.awt.Point dialogLoc = dialog.getLocationOnScreen();
+            java.awt.Rectangle dialogBounds = new java.awt.Rectangle(
+                dialogLoc.x, dialogLoc.y, dialog.getWidth(), dialog.getHeight());
+            if (!dialogBounds.contains(screenPoint)) {
+              SwingUtilities.invokeLater(() -> {
+                removeDismissListener();
+                dialog.dispose();
+                if (currentDialog == dialog) {
+                  currentDialog = null;
+                }
+              });
+            }
+          } catch (Exception ignored) {
+            // Dialog disposed — clean up listener to prevent blocking events
+            SwingUtilities.invokeLater(PatientCaseInfoDialog::removeDismissListener);
+          }
+        }
+      };
+      Toolkit.getDefaultToolkit().addAWTEventListener(
+          dismissListener, java.awt.AWTEvent.MOUSE_EVENT_MASK);
+    });
+    installTimer.setRepeats(false);
+    installTimer.start();
+  }
+
+  private static void removeDismissListener() {
+    if (dismissListener != null) {
+      Toolkit.getDefaultToolkit().removeAWTEventListener(dismissListener);
+      dismissListener = null;
+    }
   }
 
   private static JScrollPane createScrollColumn(String html) {

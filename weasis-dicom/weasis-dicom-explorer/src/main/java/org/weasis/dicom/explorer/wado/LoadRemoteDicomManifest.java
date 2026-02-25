@@ -104,20 +104,17 @@ public class LoadRemoteDicomManifest extends ExplorerTask<Boolean, String> {
 
   private boolean tryDownloadingAgain(DownloadException e) {
     if (retryNb.getAndIncrement() == 0) {
-      return true;
+      return true; // Auto-retry once silently
     }
-    boolean[] ret = {false};
-    GuiExecutor.invokeAndWait(
-        () -> {
-          int confirm =
-              JOptionPane.showConfirmDialog(
-                  GuiUtils.getUICore().getApplicationWindow(),
-                  getErrorMessage(e),
-                  Messages.getString("LoadRemoteDicomManifest.net_err_msg"),
-                  JOptionPane.YES_NO_OPTION);
-          ret[0] = JOptionPane.YES_OPTION == confirm;
-        });
-    return ret[0];
+    // After first retry fails, just log and show non-blocking notification
+    LOGGER.warn("Download failed after retry: {}", e.getMessage());
+    GuiExecutor.execute(
+        () -> JOptionPane.showMessageDialog(
+            null, // null parent = non-blocking, own window
+            StringUtil.getTruncatedString(e.getMessage(), 130, Suffix.THREE_PTS),
+            Messages.getString("LoadRemoteDicomManifest.net_err_msg"),
+            JOptionPane.WARNING_MESSAGE));
+    return false;
   }
 
   private static String getErrorMessage(DownloadException e) {
@@ -183,6 +180,9 @@ public class LoadRemoteDicomManifest extends ExplorerTask<Boolean, String> {
       }
       String uriStr = uri.toString();
       int idx = uriStr.indexOf("/v2/patients/weasis-xml");
+      if (idx < 0) {
+        idx = uriStr.indexOf("/v2/patients/zen-xml");
+      }
       if (idx > 0) {
         DownloadManager.setApiBaseUrl(uriStr.substring(0, idx));
       }

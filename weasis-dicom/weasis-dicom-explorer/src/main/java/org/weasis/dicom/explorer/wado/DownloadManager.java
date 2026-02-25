@@ -414,22 +414,11 @@ public class DownloadManager {
       final int messageType = JOptionPane.ERROR_MESSAGE;
 
       GuiExecutor.execute(
-          () -> {
-            ColorLayerUI layer =
-                ColorLayerUI.createTransparentLayerUI(GuiUtils.getUICore().getBaseArea());
-            JOptionPane.showOptionDialog(
-                WinUtil.getValidComponent(ColorLayerUI.getContentPane(layer)),
-                StringUtil.getTruncatedString(message, 130, Suffix.THREE_PTS),
-                null,
-                JOptionPane.DEFAULT_OPTION,
-                messageType,
-                null,
-                null,
-                null);
-            if (layer != null) {
-              layer.hideUI();
-            }
-          });
+          () -> JOptionPane.showMessageDialog(
+              null,
+              StringUtil.getTruncatedString(message, 130, Suffix.THREE_PTS),
+              "Network error",
+              messageType));
     } finally {
       FileUtil.safeClose(xmler);
       FileUtil.safeClose(stream);

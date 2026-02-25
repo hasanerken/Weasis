@@ -94,6 +94,7 @@ import org.weasis.dicom.explorer.DicomExplorer;
 import org.weasis.dicom.explorer.DicomModel;
 import org.weasis.dicom.explorer.DicomViewerPlugin;
 import org.weasis.dicom.explorer.ExportToolBar;
+import org.weasis.dicom.explorer.ZenToolBar;
 import org.weasis.dicom.explorer.ImportToolBar;
 import org.weasis.dicom.explorer.print.DicomPrintDialog;
 import org.weasis.dicom.viewer2d.dockable.DisplayTool;
@@ -201,6 +202,19 @@ public class View2dContainer extends DicomViewerPlugin implements PropertyChange
                 .filter(ExportToolBar.class::isInstance)
                 .findFirst();
         b.ifPresent(toolBars::add);
+      }
+      if (InsertableUtil.getBooleanProperty(
+          preferences,
+          bundleName,
+          componentName,
+          InsertableUtil.getCName(ZenToolBar.class),
+          key,
+          true)) {
+        Optional<Toolbar> z =
+            GuiUtils.getUICore().getExplorerPluginToolbars().stream()
+                .filter(ZenToolBar.class::isInstance)
+                .findFirst();
+        z.ifPresent(toolBars::add);
       }
       if (InsertableUtil.getBooleanProperty(
           preferences,
