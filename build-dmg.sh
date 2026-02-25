@@ -17,7 +17,7 @@ cd "$SCRIPT_DIR"
 
 # Configuration
 JDK_ARM64="/Users/hasanerken/Library/Java/JavaVirtualMachines/jdk-25.jdk/Contents/Home"
-JDK_X64="/tmp/jdk21-x64/jdk-21.0.10+7/Contents/Home"
+JDK_X64="/tmp/jdk25-x64/jdk-25.0.2+10/Contents/Home"
 APP_NAME="ZenViewer"
 APP_VERSION="1.0.0"
 BUNDLE_ID="com.zenpacs.zenviewer"
