@@ -19,7 +19,11 @@ cd "$SCRIPT_DIR"
 JDK_ARM64="/Users/hasanerken/Library/Java/JavaVirtualMachines/jdk-25.jdk/Contents/Home"
 JDK_X64="/tmp/jdk25-x64/jdk-25.0.2+10/Contents/Home"
 APP_NAME="ZenViewer"
-APP_VERSION="1.0.8"
+# WARNING: When changing APP_VERSION, also update:
+#   - build-windows.bat          (set APP_VERSION=...)
+#   - weasis-launcher/conf/base.json  (zenviewer.version)
+#   - weasis-update.json in MinIO bucket zenviewer-releases
+APP_VERSION="1.0.9"
 BUNDLE_ID="com.zenpacs.zenviewer"
 ICON="$SCRIPT_DIR/weasis-distributions/script/resources/macosx/Weasis.icns"
 INPUT_DIR="$SCRIPT_DIR/weasis-distributions/target/native-dist/bin-dist/bin-dist/weasis"

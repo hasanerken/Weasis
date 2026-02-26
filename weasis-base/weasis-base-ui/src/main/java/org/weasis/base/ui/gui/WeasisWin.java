@@ -810,11 +810,23 @@ public class WeasisWin {
     return null;
   }
 
+  private static String getPlatformId() {
+    String os = System.getProperty("os.name", "").toLowerCase();
+    String arch = System.getProperty("os.arch", "").toLowerCase();
+    if (os.contains("mac") || os.contains("darwin")) {
+      return arch.contains("aarch64") || arch.contains("arm") ? "macos-arm64" : "macos-x64";
+    } else if (os.contains("win")) {
+      return "windows-x64";
+    }
+    return "unknown";
+  }
+
   private Release getLastRelease() {
     try {
+      String platform = getPlatformId();
       HttpRequest request =
           HttpRequest.newBuilder()
-              .uri(new URI("https://nroduit.github.io/en/api/release/api.json"))
+              .uri(new URI("https://api.zenpacs.com.tr/api/v2/zenviewer/release?platform=" + platform))
               .timeout(Duration.of(10, SECONDS))
               .GET()
               .build();
@@ -836,7 +848,11 @@ public class WeasisWin {
   private void checkReleaseUpdate(Component parent) {
     Release release = getLastRelease();
     if (release != null) {
-      Version vOld = AppProperties.getVersion(AppProperties.WEASIS_VERSION);
+      String zenViewerVersion =
+          GuiUtils.getUICore()
+              .getSystemPreferences()
+              .getProperty("zenviewer.version", AppProperties.WEASIS_VERSION);
+      Version vOld = AppProperties.getVersion(zenViewerVersion);
       Version vNew = AppProperties.getVersion(release.getVersion());
       if (vNew.compareTo(vOld) > 0) {
         GuiExecutor.execute(

@@ -170,6 +170,9 @@ public class ZenToolBar extends WtoolBar {
         if (!toClose.isEmpty()) {
           GuiUtils.getUICore().closeSeriesViewer(toClose);
         }
+        // Remove patient from DicomExplorer (stops downloads, disposes resources, updates UI)
+        DicomModel dicomModel = (DicomModel) explorer.getDataExplorerModel();
+        dicomModel.removePatient(patient);
       }
     });
   }

@@ -260,6 +260,13 @@
       "category": "LOCK"
     },
     {
+      "code": "zenviewer.version",
+      "value": "1.0.9",
+      "description": "ZenViewer product version for update checks. WARNING: Must match APP_VERSION in build-dmg.sh, build-windows.bat, and weasis-update.json in MinIO",
+      "type": "A",
+      "category": "LOCK"
+    },
+    {
       "code": "weasis.min.native.version",
       "value": "${base.minimal.version}",
       "description": "Minimal required version of the native installer",
@@ -348,7 +355,7 @@
     },
     {
       "code": "weasis.update.release",
-      "value": "false",
+      "value": "true",
       "description": "Show a message when a new release is available",
       "type": "A",
       "javaType": "BOOLEAN",

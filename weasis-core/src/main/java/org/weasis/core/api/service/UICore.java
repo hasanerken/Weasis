@@ -139,6 +139,7 @@ public final class UICore {
         new File(systemPreferences.getProperty("weasis.pref.dir"), "weasis.properties");
     if (!propsFile.canRead()) {
       try {
+        propsFile.getParentFile().mkdirs();
         if (!propsFile.createNewFile()) {
           LOGGER.warn("File already exist {}", propsFile.getPath());
         }

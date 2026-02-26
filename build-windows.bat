@@ -12,7 +12,11 @@ REM ---- Configuration ----
 REM IMPORTANT: Set JDK path to your local JDK 21+ installation
 set JDK=C:\Program Files\Java\jdk-25
 set APP_NAME=ZenViewer
-set APP_VERSION=1.0.0
+REM WARNING: When changing APP_VERSION, also update:
+REM   - build-dmg.sh                    (APP_VERSION=...)
+REM   - weasis-launcher/conf/base.json  (zenviewer.version)
+REM   - weasis-update.json in MinIO bucket zenviewer-releases
+set APP_VERSION=1.0.9
 set BUNDLE_ID=com.zenpacs.zenviewer
 set ICON=%SCRIPT_DIR%weasis-distributions\script\resources\windows\Weasis.ico
 set OUTPUT_DIR=%SCRIPT_DIR%target
