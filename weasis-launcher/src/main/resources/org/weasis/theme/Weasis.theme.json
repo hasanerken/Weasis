@@ -1496,11 +1496,12 @@
       "foreground": "fg",
       "majorTickLength": 6,
       "thumb": "accent",
+      "thumbSize": "20,20",
       "tickColor": "second",
       "track": "table",
       "trackColor": "table",
       "trackDisabled": "hl",
-      "trackWidth": 7
+      "trackWidth": 9
     },
     "Space.Review.diffAnchorBackground": "second",
     "SpeedSearch": {

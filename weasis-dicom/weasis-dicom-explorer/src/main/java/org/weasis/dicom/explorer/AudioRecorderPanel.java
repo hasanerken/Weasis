@@ -178,14 +178,17 @@ public class AudioRecorderPanel extends JPanel {
 
     JPanel controls = new JPanel(new FlowLayout(FlowLayout.CENTER, 8, 0));
     controls.setOpaque(false);
-    btnRecord = createControlButton("\u25CF", "Kay\u0131t Ba\u015flat (Ctrl+R)", RECORD_RED);
+    btnRecord = createControlButton("\u25CF", "Kay\u0131t Ba\u015flat ("
+        + ZenShortcuts.getInstance().getDisplayText(ZenShortcuts.Action.RECORD) + ")", RECORD_RED);
     btnRecord.addActionListener(e -> onRecord());
     controls.add(btnRecord);
-    btnPause = createControlButton("\u2759\u2759", "Duraklat/Devam (Ctrl+T)", WARN_AMBER);
+    btnPause = createControlButton("\u2759\u2759", "Duraklat/Devam ("
+        + ZenShortcuts.getInstance().getDisplayText(ZenShortcuts.Action.PAUSE_RESUME) + ")", WARN_AMBER);
     btnPause.setEnabled(false);
     btnPause.addActionListener(e -> onPause());
     controls.add(btnPause);
-    btnStop = createControlButton("\u25A0", "Durdur (Ctrl+R)", TEXT_COLOR);
+    btnStop = createControlButton("\u25A0", "Durdur ("
+        + ZenShortcuts.getInstance().getDisplayText(ZenShortcuts.Action.RECORD) + ")", TEXT_COLOR);
     btnStop.setEnabled(false);
     btnStop.addActionListener(e -> onStop());
     controls.add(btnStop);

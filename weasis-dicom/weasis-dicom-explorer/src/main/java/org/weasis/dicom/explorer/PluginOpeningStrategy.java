@@ -12,12 +12,15 @@ package org.weasis.dicom.explorer;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.weasis.core.api.gui.util.GuiUtils;
+import org.weasis.core.api.media.data.MediaElement;
+import org.weasis.core.api.media.data.MediaSeries;
 import org.weasis.core.api.media.data.MediaSeriesGroup;
 import org.weasis.core.api.media.data.Series;
 import org.weasis.core.ui.editor.SeriesViewerFactory;
@@ -114,7 +117,26 @@ public class PluginOpeningStrategy {
               openPatients.size());
           addPatient(patient);
           firstViewerOpened.set(true);
-          ViewerPluginBuilder.openSequenceInPlugin(plugin, dicomSeries, dicomModel, true, true);
+
+          // Collect up to 2 non-hidden series of the same type for side-by-side display
+          List<MediaSeries<? extends MediaElement>> seriesToOpen = new ArrayList<>();
+          seriesToOpen.add(dicomSeries);
+          for (MediaSeriesGroup study : dicomModel.getChildren(patient)) {
+            for (MediaSeriesGroup seq : dicomModel.getChildren(study)) {
+              if (seq instanceof Series<?> s
+                  && s != dicomSeries
+                  && !DicomModel.isHiddenModality(s)
+                  && s.getMimeType() != null
+                  && s.getMimeType().equals(mime)) {
+                seriesToOpen.add((MediaSeries) s);
+                if (seriesToOpen.size() >= 2) break;
+              }
+            }
+            if (seriesToOpen.size() >= 2) break;
+          }
+
+          ViewerPluginBuilder.openSequenceInPlugin(
+              plugin, seriesToOpen, dicomModel, true, true);
         }
       } else {
         LOGGER.debug(

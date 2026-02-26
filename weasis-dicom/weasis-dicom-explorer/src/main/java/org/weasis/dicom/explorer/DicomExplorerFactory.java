@@ -89,42 +89,39 @@ public class DicomExplorerFactory implements DataExplorerViewFactory {
   }
 
   private void registerKeyboardShortcuts() {
+    ZenShortcuts shortcuts = ZenShortcuts.getInstance();
     zenKeyDispatcher = e -> {
-      if (e.getID() != KeyEvent.KEY_PRESSED || !e.isControlDown()) {
+      if (e.getID() != KeyEvent.KEY_PRESSED) {
         return false;
       }
-      switch (e.getKeyCode()) {
-        case KeyEvent.VK_O -> {
-          if (zenToolBar != null) {
-            SwingUtilities.invokeLater(zenToolBar::triggerOkundu);
-          }
-          return true;
-        }
-        case KeyEvent.VK_R -> {
-          if (recorderPanel != null) {
-            SwingUtilities.invokeLater(recorderPanel::triggerRecord);
-          }
-          return true;
-        }
-        case KeyEvent.VK_T -> {
-          if (recorderPanel != null) {
-            SwingUtilities.invokeLater(recorderPanel::triggerPauseResume);
-          }
-          return true;
-        }
-        case KeyEvent.VK_Y -> {
-          if (recorderPanel != null) {
-            SwingUtilities.invokeLater(recorderPanel::triggerUpload);
-          }
-          return true;
-        }
-        default -> {
-          return false;
-        }
+      if (shortcuts.matches(ZenShortcuts.Action.OKUNDU, e)) {
+        if (zenToolBar != null) SwingUtilities.invokeLater(zenToolBar::triggerOkundu);
+        return true;
       }
+      if (shortcuts.matches(ZenShortcuts.Action.RECORD, e)) {
+        if (recorderPanel != null) SwingUtilities.invokeLater(recorderPanel::triggerRecord);
+        return true;
+      }
+      if (shortcuts.matches(ZenShortcuts.Action.PAUSE_RESUME, e)) {
+        if (recorderPanel != null) SwingUtilities.invokeLater(recorderPanel::triggerPauseResume);
+        return true;
+      }
+      if (shortcuts.matches(ZenShortcuts.Action.UPLOAD, e)) {
+        if (recorderPanel != null) SwingUtilities.invokeLater(recorderPanel::triggerUpload);
+        return true;
+      }
+      if (shortcuts.matches(ZenShortcuts.Action.OK_KAPAT, e)) {
+        if (zenToolBar != null) SwingUtilities.invokeLater(zenToolBar::triggerOkKapat);
+        return true;
+      }
+      return false;
     };
     KeyboardFocusManager.getCurrentKeyboardFocusManager().addKeyEventDispatcher(zenKeyDispatcher);
-    System.out.println("[ZenPACS] Keyboard shortcuts registered: Ctrl+O/R/T/Y");
+    System.out.println("[ZenPACS] Keyboard shortcuts registered: " + shortcuts.getDisplayText(ZenShortcuts.Action.OKUNDU)
+        + "/" + shortcuts.getDisplayText(ZenShortcuts.Action.RECORD)
+        + "/" + shortcuts.getDisplayText(ZenShortcuts.Action.PAUSE_RESUME)
+        + "/" + shortcuts.getDisplayText(ZenShortcuts.Action.UPLOAD)
+        + "/" + shortcuts.getDisplayText(ZenShortcuts.Action.OK_KAPAT));
   }
 
   // ================================================================================

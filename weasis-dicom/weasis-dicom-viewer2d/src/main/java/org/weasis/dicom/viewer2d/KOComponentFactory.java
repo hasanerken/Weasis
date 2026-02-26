@@ -72,7 +72,7 @@ public final class KOComponentFactory {
           koSelectionAction.ifPresent(c -> popupMenu.setEnabled(c.isActionEnabled()));
           popupMenu.show(invoker, x, y);
         },
-        ResourceUtil.getIcon(OtherIcon.KEY_IMAGE).derive(24, 24),
+        ResourceUtil.getIcon(OtherIcon.KEY_IMAGE).derive(36, 36),
         ActionW.KO_SELECTION.getTitle());
   }
 
@@ -102,8 +102,10 @@ public final class KOComponentFactory {
       SELECTED
     }
 
+    private static final int ICON_SIZE = 36;
+
     public KOViewButton(ShowPopup popup) {
-      super(popup, KeyObjectToolBar.KO_STAR_ICON.derive(24, 24), "star"); // NON-NLS
+      super(popup, KeyObjectToolBar.KO_STAR_ICON.derive(ICON_SIZE, ICON_SIZE), "star"); // NON-NLS
     }
 
     public eState getState() {

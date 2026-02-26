@@ -237,7 +237,7 @@ public class WeasisWin {
 
     rootPaneContainer.setGlassPane(AppProperties.glassPane);
 
-    frame.setTitle(AppProperties.WEASIS_NAME + " 1.0.0 (" + AppProperties.WEASIS_VERSION + ")"); // NON-NLS
+    frame.setTitle(AppProperties.WEASIS_NAME + " " + AppProperties.WEASIS_VERSION); // NON-NLS
 
     LogoIcon logoIcon =
         AppProperties.WEASIS_NAME.endsWith("Dicomizer") // NON-NLS

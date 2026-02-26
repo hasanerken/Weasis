@@ -85,6 +85,7 @@ import org.weasis.core.ui.editor.SeriesViewerFactory;
 import org.weasis.core.ui.editor.SeriesViewerListener;
 import org.weasis.core.ui.editor.ViewerPluginBuilder;
 import org.weasis.core.ui.editor.image.ImageViewerPlugin;
+import org.weasis.core.ui.editor.image.ViewerPlugin;
 import org.weasis.core.ui.editor.image.SequenceHandler;
 import org.weasis.core.ui.editor.image.ViewCanvas;
 import org.weasis.core.ui.util.ArrayListComboBoxModel;
@@ -1043,21 +1044,57 @@ public class DicomExplorer extends PluginTool implements DataExplorerView, Serie
   }
 
   private void openFirstSeriesForPatient(MediaSeriesGroup patient) {
+    // Skip if a viewer is already open for this patient (e.g. opened by PluginOpeningStrategy)
+    List<ViewerPlugin<?>> viewerPlugins = GuiUtils.getUICore().getViewerPlugins();
+    synchronized (viewerPlugins) {
+      for (ViewerPlugin<?> p : viewerPlugins) {
+        if (patient.equals(p.getGroupID())) {
+          return;
+        }
+      }
+    }
+
     synchronized (model) {
+      // Find the first valid series and its plugin
+      Series<?> firstSeries = null;
+      String mime = null;
+      SeriesViewerFactory plugin = null;
       for (MediaSeriesGroup study : model.getChildren(patient)) {
         for (MediaSeriesGroup seq : model.getChildren(study)) {
-          if (seq instanceof Series<?> series && !DicomModel.isHiddenModality(series)) {
-            String mime = series.getMimeType();
-            if (mime != null && !"sr/dicom".equals(mime)) {
-              SeriesViewerFactory plugin = GuiUtils.getUICore().getViewerFactory(mime);
-              if (plugin != null && !(plugin instanceof MimeSystemAppFactory)) {
-                ViewerPluginBuilder.openSequenceInDefaultPlugin(series, model, true, true);
-                return;
+          if (seq instanceof Series<?> s && !DicomModel.isHiddenModality(s)) {
+            String m = s.getMimeType();
+            if (m != null && !"sr/dicom".equals(m)) {
+              SeriesViewerFactory p = GuiUtils.getUICore().getViewerFactory(m);
+              if (p != null && !(p instanceof MimeSystemAppFactory)) {
+                firstSeries = s;
+                mime = m;
+                plugin = p;
+                break;
               }
             }
           }
         }
+        if (firstSeries != null) break;
       }
+      if (firstSeries == null) return;
+
+      // Collect up to 2 non-hidden series of the same type for side-by-side display
+      List<MediaSeries<? extends MediaElement>> seriesToOpen = new ArrayList<>();
+      seriesToOpen.add(firstSeries);
+      for (MediaSeriesGroup study : model.getChildren(patient)) {
+        for (MediaSeriesGroup seq : model.getChildren(study)) {
+          if (seq instanceof Series<?> s
+              && s != firstSeries
+              && !DicomModel.isHiddenModality(s)
+              && s.getMimeType() != null
+              && s.getMimeType().equals(mime)) {
+            seriesToOpen.add((MediaSeries) s);
+            if (seriesToOpen.size() >= 2) break;
+          }
+        }
+        if (seriesToOpen.size() >= 2) break;
+      }
+      ViewerPluginBuilder.openSequenceInPlugin(plugin, seriesToOpen, model, true, true);
     }
   }
 

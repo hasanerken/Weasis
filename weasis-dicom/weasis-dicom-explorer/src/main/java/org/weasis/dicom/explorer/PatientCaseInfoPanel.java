@@ -237,7 +237,7 @@ public class PatientCaseInfoPanel extends PluginTool {
 
   private String buildOrdersSection(List<JsonNode> orders) {
     StringBuilder sb = new StringBuilder();
-    sb.append("<h3 style='color:#64B5F6;border-bottom:1px solid #64B5F6;padding-bottom:3px;")
+    sb.append("<h3 style='color:#64B5F6;padding-bottom:3px;")
         .append("margin-top:4px;font-size:12px;'>\u0130stemler</h3>");
     if (orders.isEmpty()) {
       sb.append("<p style='color:#777;font-size:10px;'>Sipari\u015f bulunamad\u0131.</p>");
@@ -249,7 +249,7 @@ public class PatientCaseInfoPanel extends PluginTool {
         String status = textVal(order, "status");
         String orderModality = textVal(order, "modality");
         sb.append("<div style='background:#353740;padding:5px;border-radius:3px;")
-            .append("margin-bottom:4px;border-left:3px solid #64B5F6;font-size:10px;'>");
+            .append("margin-bottom:4px;font-size:10px;'>");
         sb.append("<b style='color:#E0E0E0;'>")
             .append(i + 1).append(". ").append(esc(serviceName)).append("</b>");
         if (!serviceCode.isEmpty())
@@ -273,20 +273,20 @@ public class PatientCaseInfoPanel extends PluginTool {
 
     String notes = textVal(data, "notes");
     if (!notes.isEmpty()) {
-      sb.append("<h3 style='color:#64B5F6;border-bottom:1px solid #64B5F6;padding-bottom:3px;")
+      sb.append("<h3 style='color:#64B5F6;padding-bottom:3px;")
           .append("margin-top:8px;font-size:12px;'>Notlar</h3>");
       sb.append("<div style='background:#3A3520;padding:5px;border-radius:3px;")
-          .append("border-left:3px solid #FFB74D;margin-bottom:4px;color:#E0E0E0;font-size:10px;'>")
+          .append("margin-bottom:4px;color:#E0E0E0;font-size:10px;'>")
           .append(esc(notes)).append("</div>");
     }
 
     JsonNode userNotes = data.get("user_notes");
     if (userNotes != null && userNotes.isArray() && !userNotes.isEmpty()) {
-      sb.append("<h3 style='color:#64B5F6;border-bottom:1px solid #64B5F6;padding-bottom:3px;")
+      sb.append("<h3 style='color:#64B5F6;padding-bottom:3px;")
           .append("margin-top:8px;font-size:12px;'>Kullan\u0131c\u0131 Notlar\u0131</h3>");
       for (JsonNode note : userNotes) {
         sb.append("<div style='background:#2A3A2A;padding:4px;border-radius:3px;")
-            .append("margin-bottom:3px;border-left:3px solid #66BB6A;color:#E0E0E0;font-size:10px;'>");
+            .append("margin-bottom:3px;color:#E0E0E0;font-size:10px;'>");
         if (note.isTextual()) {
           sb.append(esc(note.asText()));
         } else if (note.isObject()) {
@@ -320,13 +320,13 @@ public class PatientCaseInfoPanel extends PluginTool {
       }
     }
     if (!diagMap.isEmpty()) {
-      sb.append("<h3 style='color:#64B5F6;border-bottom:1px solid #64B5F6;padding-bottom:3px;")
+      sb.append("<h3 style='color:#64B5F6;padding-bottom:3px;")
           .append("margin-top:8px;font-size:12px;'>Tan\u0131lar</h3>");
       for (Map.Entry<String, String> entry : diagMap.entrySet()) {
         String code = entry.getKey();
         String desc = entry.getValue();
         sb.append("<div style='background:#352A3A;padding:4px;border-radius:3px;")
-            .append("margin-bottom:3px;border-left:3px solid #BA68C8;color:#E0E0E0;font-size:10px;'>");
+            .append("margin-bottom:3px;color:#E0E0E0;font-size:10px;'>");
         if (!code.equals(desc) && !code.isEmpty())
           sb.append("<b style='color:#CE93D8;'>").append(esc(code)).append("</b> \u2014 ");
         sb.append(esc(desc)).append("</div>");
@@ -337,7 +337,7 @@ public class PatientCaseInfoPanel extends PluginTool {
 
   private String buildAnamnesisSection(List<JsonNode> orders) {
     StringBuilder sb = new StringBuilder();
-    sb.append("<h3 style='color:#64B5F6;border-bottom:1px solid #64B5F6;padding-bottom:3px;")
+    sb.append("<h3 style='color:#64B5F6;padding-bottom:3px;")
         .append("margin-top:8px;font-size:12px;'>Anamnez</h3>");
 
     Set<String> seenKeys = new LinkedHashSet<>();
@@ -362,7 +362,7 @@ public class PatientCaseInfoPanel extends PluginTool {
       for (JsonNode anam : uniqueAnamnesis) {
         String source = textVal(anam, "source");
         sb.append("<div style='background:#353740;padding:5px;border-radius:3px;")
-            .append("margin-bottom:6px;border-left:3px solid #64B5F6;color:#E0E0E0;font-size:10px;'>");
+            .append("margin-bottom:6px;color:#E0E0E0;font-size:10px;'>");
         if (!source.isEmpty()) {
           String sourceColor = "manual".equals(source) ? "#FFB74D" : "#66BB6A";
           sb.append("<span style='background:").append(sourceColor)

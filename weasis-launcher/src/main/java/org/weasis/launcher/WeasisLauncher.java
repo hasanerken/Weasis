@@ -1056,6 +1056,12 @@ Starting OSGI Bundles...
       serverProp.put(
           Constants.FRAMEWORK_STORAGE_CLEAN, Constants.FRAMEWORK_STORAGE_CLEAN_ONFIRSTINIT);
       LOGGER.info("Clean plug-in cache because the version has changed");
+      // Also clean saved preferences so new defaults take effect
+      File prefsDir = new File(dir + File.separator + "preferences");
+      if (prefsDir.isDirectory()) {
+        FileUtil.recursiveDelete(prefsDir, false);
+        LOGGER.info("Clean preferences directory: {}", prefsDir);
+      }
     }
 
     if (update) {
