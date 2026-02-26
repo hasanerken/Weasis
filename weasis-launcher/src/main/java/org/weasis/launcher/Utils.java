@@ -65,7 +65,7 @@ public class Utils {
   }
 
   public static Pattern getWeasisProtocolPattern() {
-    return Pattern.compile("^weasis(-.*)?://.*?");
+    return Pattern.compile("^zenviewer(-.*)?://.*?");
   }
 
   public static String getWeasisProtocol(String... params) {

@@ -268,7 +268,7 @@
     },
     {
       "code": "weasis.clean.previous.version",
-      "value": "false",
+      "value": "true",
       "description": "If true, the bundle cache is cleared when the weasis version has changed from the previous launch",
       "type": "A",
       "javaType": "BOOLEAN",
@@ -283,7 +283,7 @@
     },
     {
       "code": "weasis.name",
-      "value": "Weasis",
+      "value": "ZenViewer",
       "description": "Change the name of the application everywhere in UI",
       "type": "AP",
       "category": "LAUNCH"
@@ -325,7 +325,7 @@
     },
     {
       "code": "weasis.show.disclaimer",
-      "value": "true",
+      "value": "false",
       "description": "Show a disclaimer at the first launch of Weasis (requires to be accepted to start the application)",
       "type": "A",
       "javaType": "BOOLEAN",
@@ -443,7 +443,7 @@
     },
     {
       "code": "download.concurrent.series",
-      "value": "3",
+      "value": "5",
       "description": "Controls the number of series downloaded simultaneously",
       "type": "A",
       "javaType": "INT",
@@ -451,7 +451,7 @@
     },
     {
       "code": "download.concurrent.series.images",
-      "value": "4",
+      "value": "6",
       "description": "The number of concurrently downloaded images within a series",
       "type": "A",
       "javaType": "INT",

@@ -115,7 +115,7 @@ public class LoadRemoteDicomURL extends ExplorerTask<Boolean, String> {
                 dicomModel,
                 GuiUtils.getUICore()
                     .getSystemPreferences()
-                    .getIntProperty(LoadSeries.CONCURRENT_DOWNLOADS_IN_SERIES, 4),
+                    .getIntProperty(LoadSeries.CONCURRENT_DOWNLOADS_IN_SERIES, 6),
                 true);
         if (!DicomModel.isHiddenModality(dicomSeries)) {
           loadSeries.startDownloadImageReference(wadoParameters);

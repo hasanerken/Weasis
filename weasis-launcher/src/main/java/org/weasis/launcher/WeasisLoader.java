@@ -9,13 +9,13 @@
  */
 package org.weasis.launcher;
 
-import com.formdev.flatlaf.extras.FlatSVGIcon;
 import java.awt.BorderLayout;
 import java.awt.Container;
 import java.awt.EventQueue;
 import java.awt.Font;
 import java.awt.Frame;
 import java.awt.GraphicsEnvironment;
+import java.awt.Image;
 import java.awt.Rectangle;
 import java.awt.Window;
 import java.lang.reflect.InvocationTargetException;
@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.Properties;
 import javax.swing.BorderFactory;
 import javax.swing.Icon;
+import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -91,7 +92,9 @@ public class WeasisLoader {
     cancelButton.setText(Messages.getString("WebStartLoader.cancel"));
     cancelButton.addActionListener(evt -> closing());
 
-    Icon icon = new FlatSVGIcon(resPath.resolve("svg/logo/WeasisAbout.svg").toUri());
+    ImageIcon rawIcon = new ImageIcon(resPath.resolve("images/zenviewer-splash.png").toString());
+    Image scaled = rawIcon.getImage().getScaledInstance(448, -1, Image.SCALE_SMOOTH);
+    Icon icon = new ImageIcon(scaled);
     String text =
         String.format(
             Messages.getString("WebStartLoader.title"), System.getProperty("weasis.name"));

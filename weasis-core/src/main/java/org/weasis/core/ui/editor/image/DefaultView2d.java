@@ -252,7 +252,7 @@ public abstract class DefaultView2d<E extends ImageElement> extends GraphicsPane
                   }
                   popupMenu.show(invoker, x, y);
                 },
-                ResourceUtil.getIcon(ActionIcon.SYNCH).derive(24, 24),
+                ResourceUtil.getIcon(ActionIcon.SYNCH).derive(36, 36),
                 ActionW.SYNCH.getTitle());
         synchButton.setVisible(true);
         synchButton.setPosition(GridBagConstraints.SOUTHEAST);

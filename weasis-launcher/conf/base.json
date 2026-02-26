@@ -208,7 +208,7 @@
     },
     {
       "code": "org.apache.sling.commons.log.file.activate",
-      "value": "false",
+      "value": "true",
       "description": "Activation of rolling log files",
       "type": "F",
       "javaType": "BOOLEAN",
@@ -275,7 +275,7 @@
     },
     {
       "code": "weasis.clean.previous.version",
-      "value": "false",
+      "value": "true",
       "description": "If true, the bundle cache is cleared when the weasis version has changed from the previous launch",
       "type": "A",
       "javaType": "BOOLEAN",
@@ -450,7 +450,7 @@
     },
     {
       "code": "download.concurrent.series",
-      "value": "3",
+      "value": "5",
       "description": "Controls the number of series downloaded simultaneously",
       "type": "A",
       "javaType": "INT",
@@ -458,7 +458,7 @@
     },
     {
       "code": "download.concurrent.series.images",
-      "value": "4",
+      "value": "6",
       "description": "The number of concurrently downloaded images within a series",
       "type": "A",
       "javaType": "INT",

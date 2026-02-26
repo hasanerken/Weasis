@@ -278,6 +278,16 @@ public class LoadSeries extends ExplorerTask<Boolean, String> implements SeriesI
       DownloadManager.removeLoadSeries(this, dicomModel);
       notifyDownloadCompletion(dicomModel);
 
+      // Mark series complete in study tracker for completion detection
+      MediaSeriesGroup studyGroup = dicomModel.getParent(dicomSeries, DicomModel.study);
+      if (studyGroup != null) {
+        String studyUID = TagD.getTagValue(studyGroup, Tag.StudyInstanceUID, String.class);
+        String seriesUID = TagD.getTagValue(dicomSeries, Tag.SeriesInstanceUID, String.class);
+        if (studyUID != null && seriesUID != null) {
+          StudyDownloadTracker.getInstance().markSeriesComplete(studyUID, seriesUID);
+        }
+      }
+
       LoadLocalDicom.seriesPostProcessing(dicomSeries, dicomModel);
 
       String loadType = getLoadType();

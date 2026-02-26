@@ -34,6 +34,7 @@ import org.weasis.core.util.StringUtil;
 import org.weasis.core.util.StringUtil.Suffix;
 import org.weasis.dicom.explorer.DicomModel;
 import org.weasis.dicom.explorer.ExplorerTask;
+import org.weasis.dicom.explorer.HangingProtocols;
 import org.weasis.dicom.explorer.Messages;
 import org.weasis.dicom.explorer.PluginOpeningStrategy;
 import org.weasis.dicom.explorer.pref.download.DicomExplorerPrefView;
@@ -103,20 +104,17 @@ public class LoadRemoteDicomManifest extends ExplorerTask<Boolean, String> {
 
   private boolean tryDownloadingAgain(DownloadException e) {
     if (retryNb.getAndIncrement() == 0) {
-      return true;
+      return true; // Auto-retry once silently
     }
-    boolean[] ret = {false};
-    GuiExecutor.invokeAndWait(
-        () -> {
-          int confirm =
-              JOptionPane.showConfirmDialog(
-                  GuiUtils.getUICore().getApplicationWindow(),
-                  getErrorMessage(e),
-                  Messages.getString("LoadRemoteDicomManifest.net_err_msg"),
-                  JOptionPane.YES_NO_OPTION);
-          ret[0] = JOptionPane.YES_OPTION == confirm;
-        });
-    return ret[0];
+    // After first retry fails, just log and show non-blocking notification
+    LOGGER.warn("Download failed after retry: {}", e.getMessage());
+    GuiExecutor.execute(
+        () -> JOptionPane.showMessageDialog(
+            null, // null parent = non-blocking, own window
+            StringUtil.getTruncatedString(e.getMessage(), 130, Suffix.THREE_PTS),
+            Messages.getString("LoadRemoteDicomManifest.net_err_msg"),
+            JOptionPane.WARNING_MESSAGE));
+    return false;
   }
 
   private static String getErrorMessage(DownloadException e) {
@@ -168,9 +166,37 @@ public class LoadRemoteDicomManifest extends ExplorerTask<Boolean, String> {
   }
 
   private void downloadManifest(String path) throws DownloadException {
+    LOGGER.info("downloadManifest START: {}", path);
     try {
       URI uri = NetworkUtil.getURI(path);
+      LOGGER.info("Parsed URI: scheme={}, host={}, path={}, query length={}",
+          uri.getScheme(), uri.getHost(), uri.getPath(),
+          uri.getQuery() != null ? uri.getQuery().length() : 0);
+
+      // Extract auth token and API base URL from the manifest URL for later API calls
+      String query = uri.getQuery();
+      if (query != null) {
+        for (String param : query.split("&")) {
+          if (param.startsWith("token=")) {
+            String token = param.substring(6);
+            DownloadManager.setAuthToken(token);
+            LOGGER.info("Auth token extracted ({} chars)", token.length());
+          }
+        }
+      }
+      String uriStr = uri.toString();
+      int idx = uriStr.indexOf("/v2/patients/weasis-xml");
+      if (idx < 0) {
+        idx = uriStr.indexOf("/v2/patients/zen-xml");
+      }
+      if (idx > 0) {
+        String baseUrl = uriStr.substring(0, idx);
+        DownloadManager.setApiBaseUrl(baseUrl);
+        LOGGER.info("API base URL: {}", baseUrl);
+      }
+
       Collection<LoadSeries> wadoTasks = DownloadManager.buildDicomSeriesFromXml(uri, dicomModel);
+      LOGGER.info("XML manifest parsed: {} series to download", wadoTasks.size());
 
       loadSeriesList.addAll(wadoTasks);
       boolean downloadImmediately =
@@ -182,15 +208,26 @@ public class LoadRemoteDicomManifest extends ExplorerTask<Boolean, String> {
         LoadSeries.notifyDownloadCompletion(dicomModel);
       }
     } catch (URISyntaxException | MalformedURLException e) {
-      LOGGER.error("Loading manifest", e);
+      LOGGER.error("Loading manifest - invalid URI: {}", path, e);
     }
   }
 
   private void startDownloadingSeries(
       Collection<LoadSeries> wadoTasks, boolean downloadImmediately, boolean retry) {
     if (!wadoTasks.isEmpty()) {
-      PluginOpeningStrategy openingStrategy =
-          new PluginOpeningStrategy(DownloadManager.getOpeningViewer());
+      // Use ONE_PATIENT mode when loading multiple studies to prevent distracting
+      // tab-switching. Only the first patient opens a viewer tab; others download
+      // silently in the background. The radiologist can switch studies manually.
+      HangingProtocols.OpeningViewer mode =
+          wadoTasks.size() > 1
+              ? HangingProtocols.OpeningViewer.ONE_PATIENT
+              : DownloadManager.getOpeningViewer();
+      LOGGER.info(
+          "startDownloadingSeries: wadoTasks={}, mode={}, retry={}",
+          wadoTasks.size(),
+          mode,
+          retry);
+      PluginOpeningStrategy openingStrategy = new PluginOpeningStrategy(mode);
       if (!retry) {
         openingStrategy.prepareImport();
       }

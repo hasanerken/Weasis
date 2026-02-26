@@ -103,6 +103,29 @@ public class DownloadManager {
   private static final Logger LOGGER = LoggerFactory.getLogger(DownloadManager.class);
 
   public static final String CONCURRENT_SERIES = "download.concurrent.series";
+  // ZenPACS custom tag for patient case ID
+  public static final TagW PATIENT_CASE_ID = new TagW("PatientCaseID", TagW.TagType.STRING);
+
+  // ZenPACS auth token and API base URL extracted from manifest URL
+  private static volatile String authToken;
+  private static volatile String apiBaseUrl;
+
+  public static String getAuthToken() {
+    return authToken;
+  }
+
+  public static void setAuthToken(String token) {
+    authToken = token;
+  }
+
+  public static String getApiBaseUrl() {
+    return apiBaseUrl;
+  }
+
+  public static void setApiBaseUrl(String url) {
+    apiBaseUrl = url;
+  }
+
   private static final List<LoadSeries> TASKS = new ArrayList<>();
 
   // Executor without concurrency (only one task is executed at the same time)
@@ -116,8 +139,8 @@ public class DownloadManager {
       new PriorityBlockingQueue<>(10, new PriorityTaskComparator());
   public static final ThreadPoolExecutor CONCURRENT_EXECUTOR =
       new ThreadPoolExecutor(
-          GuiUtils.getUICore().getSystemPreferences().getIntProperty(CONCURRENT_SERIES, 3),
-          GuiUtils.getUICore().getSystemPreferences().getIntProperty(CONCURRENT_SERIES, 3),
+          GuiUtils.getUICore().getSystemPreferences().getIntProperty(CONCURRENT_SERIES, 5),
+          GuiUtils.getUICore().getSystemPreferences().getIntProperty(CONCURRENT_SERIES, 5),
           0L,
           TimeUnit.MILLISECONDS,
           PRIORITY_QUEUE,
@@ -229,7 +252,7 @@ public class DownloadManager {
         DownloadManager.CONCURRENT_EXECUTOR.setCorePoolSize(
             GuiUtils.getUICore()
                 .getSystemPreferences()
-                .getIntProperty(DownloadManager.CONCURRENT_SERIES, 3));
+                .getIntProperty(DownloadManager.CONCURRENT_SERIES, 5));
       }
     }
   }
@@ -293,6 +316,9 @@ public class DownloadManager {
       // disable external entities for security
       factory.setProperty(XMLInputFactory.IS_SUPPORTING_EXTERNAL_ENTITIES, Boolean.FALSE);
       factory.setProperty(XMLInputFactory.SUPPORT_DTD, Boolean.FALSE);
+      // Increase XML limits for large manifests (100+ cases)
+      System.setProperty("jdk.xml.maxGeneralEntitySizeLimit", "0");
+      System.setProperty("jdk.xml.totalEntitySizeLimit", "0");
 
       String path = uri.getPath();
       URLParameters urlParameters =
@@ -301,20 +327,27 @@ public class DownloadManager {
               StringUtil.getInt(System.getProperty("UrlConnectionTimeout"), 7000),
               StringUtil.getInt(System.getProperty("UrlReadTimeout"), 15000) * 2);
 
+      LOGGER.info(
+          "Connecting to XML manifest: {} (connectTimeout={}ms, readTimeout={}ms)",
+          uri, urlParameters.getConnectTimeout(), urlParameters.getReadTimeout());
+
       ClosableURLConnection urlConnection =
           NetworkUtil.getUrlConnection(uri.toURL(), urlParameters);
 
-      LOGGER.info("Downloading XML manifest: {}", path);
+      LOGGER.info("Connection established, downloading XML manifest: {}", path);
       InputStream urlInputStream = urlConnection.getInputStream();
+      LOGGER.info("InputStream obtained for manifest download");
 
       if (path.endsWith(".gz")) {
         stream = new BufferedInputStream(new GZIPInputStream(urlInputStream));
       } else if (path.endsWith(".xml")) {
         stream = urlInputStream;
       } else {
-        // In case wado file has no extension
+        // In case wado file has no extension (e.g. zen-xml API endpoint)
+        LOGGER.info("Path '{}' has no .xml/.gz extension, downloading to temp file first", path);
         File outFile = File.createTempFile("wado_", "", AppProperties.APP_TEMP_DIR); // NON-NLS
         FileUtil.writeStreamWithIOException(urlInputStream, outFile);
+        LOGGER.info("Downloaded manifest to temp file: {} ({} bytes)", outFile, outFile.length());
         if (MimeInspector.isMatchingMimeTypeFromMagicNumber(
             outFile, "application/x-gzip")) { // NON-NLS
           stream = new BufferedInputStream(new GZIPInputStream(new FileInputStream(outFile)));
@@ -330,6 +363,7 @@ public class DownloadManager {
         tempFile = File.createTempFile("wado_", ".xml", AppProperties.APP_TEMP_DIR); // NON-NLS
         FileUtil.writeStreamWithIOException(stream, tempFile);
       }
+      LOGGER.info("XML manifest saved to: {} ({} bytes)", tempFile, tempFile.length());
       xmler = factory.createXMLStreamReader(new FileInputStream(tempFile));
 
       Source xmlFile = new StAXSource(xmler);
@@ -391,22 +425,11 @@ public class DownloadManager {
       final int messageType = JOptionPane.ERROR_MESSAGE;
 
       GuiExecutor.execute(
-          () -> {
-            ColorLayerUI layer =
-                ColorLayerUI.createTransparentLayerUI(GuiUtils.getUICore().getBaseArea());
-            JOptionPane.showOptionDialog(
-                WinUtil.getValidComponent(ColorLayerUI.getContentPane(layer)),
-                StringUtil.getTruncatedString(message, 130, Suffix.THREE_PTS),
-                null,
-                JOptionPane.DEFAULT_OPTION,
-                messageType,
-                null,
-                null,
-                null);
-            if (layer != null) {
-              layer.hideUI();
-            }
-          });
+          () -> JOptionPane.showMessageDialog(
+              null,
+              StringUtil.getTruncatedString(message, 130, Suffix.THREE_PTS),
+              "Network error",
+              messageType));
     } finally {
       FileUtil.safeClose(xmler);
       FileUtil.safeClose(stream);
@@ -437,6 +460,9 @@ public class DownloadManager {
         new WadoParameters(
             arcID, wadoURL, onlySopUID, additionalParameters, overrideList, webLogin);
     params.wadoUri = getWadoUrl(wadoURL);
+    params.setArcId(arcID);
+    params.setBaseUrl(wadoURL);
+    LOGGER.info("arcQuery: arcId='{}', baseUrl='{}'", arcID, wadoURL);
     readQuery(xmler, params, wadoParameters, ArcParameters.TAG_ARC_QUERY);
   }
 
@@ -562,8 +588,14 @@ public class DownloadManager {
         tag.readValue(xmler, patient);
       }
 
+      // Read ZenPACS patient case ID (custom attribute)
+      String patientCaseID = TagUtil.getTagAttribute(xmler, "PatientCaseID", null);
+      if (patientCaseID != null) {
+        patient.setTagNoNull(PATIENT_CASE_ID, patientCaseID);
+      }
+
       model.addHierarchyNode(MediaSeriesGroupNode.rootNode, patient);
-      LOGGER.info("Adding new patient: {}", patient);
+      LOGGER.info("Adding new patient: {}, caseID={}", patient, patientCaseID);
     }
 
     final MediaSeriesGroup patient2 = patient;
@@ -700,10 +732,41 @@ public class DownloadManager {
               authMethod,
               GuiUtils.getUICore()
                   .getSystemPreferences()
-                  .getIntProperty(LoadSeries.CONCURRENT_DOWNLOADS_IN_SERIES, 4),
+                  .getIntProperty(LoadSeries.CONCURRENT_DOWNLOADS_IN_SERIES, 6),
               true,
               true);
-      loadSeries.setPriority(new DownloadPriority(patient, study, dicomSeries, true));
+      DownloadPriority downloadPriority = new DownloadPriority(patient, study, dicomSeries, true);
+      // Determine if this is central (reliable) or local (hospital edge) storage
+      // Priority: arcId from API (preferred), or URL-based fallback
+      String arcId = params.getArcId();
+      boolean isCentral = false;
+
+      if (arcId != null && !arcId.isEmpty()) {
+        // API provides explicit arcId ("central" or "local")
+        isCentral = "central".equalsIgnoreCase(arcId);
+      } else {
+        // Fallback: detect central storage from baseUrl domain
+        String baseUrl = params.getBaseUrl();
+        if (baseUrl != null) {
+          String lower = baseUrl.toLowerCase();
+          isCentral = lower.contains("dicoms.zenpacs.com.tr")
+                   || lower.contains("swfs.zenpacs.com.tr");
+        }
+      }
+
+      downloadPriority.setPriority(isCentral ? 100 : 1000);
+      loadSeries.setPriority(downloadPriority);
+      LOGGER.info("Series priority: study={}, series={}, arcId='{}', baseUrl='{}', priority={}, central={}",
+          TagD.getTagValue(study, Tag.StudyInstanceUID, String.class),
+          seriesUID, arcId, params.getBaseUrl(),
+          downloadPriority.getPriority(), isCentral);
+
+      // Register series in StudyDownloadTracker for completion tracking
+      String studyUID = TagD.getTagValue(study, Tag.StudyInstanceUID, String.class);
+      if (studyUID != null) {
+        StudyDownloadTracker.getInstance().registerSeries(studyUID, seriesUID, study);
+      }
+
       params.getSeriesMap().put(seriesUID, loadSeries);
     }
     return dicomSeries;
@@ -891,6 +954,8 @@ public class DownloadManager {
     private final DicomModel model;
     private final Map<String, LoadSeries> seriesMap;
     private DicomWebNode wadoUri;
+    private String arcId;
+    private String baseUrl;
 
     public ReaderParams(DicomModel model, Map<String, LoadSeries> seriesMap) {
       this.model = model;
@@ -903,6 +968,22 @@ public class DownloadManager {
 
     public Map<String, LoadSeries> getSeriesMap() {
       return seriesMap;
+    }
+
+    public String getArcId() {
+      return arcId;
+    }
+
+    public void setArcId(String arcId) {
+      this.arcId = arcId;
+    }
+
+    public String getBaseUrl() {
+      return baseUrl;
+    }
+
+    public void setBaseUrl(String baseUrl) {
+      this.baseUrl = baseUrl;
     }
   }
 }

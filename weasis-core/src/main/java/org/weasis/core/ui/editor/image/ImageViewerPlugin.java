@@ -783,22 +783,27 @@ public abstract class ImageViewerPlugin<E extends ImageElement> extends ViewerPl
     if (layout.isPresent()) {
       Object[] list = layout.get().getAllItem();
       GridBagLayoutModel bestModel = getDefaultLayoutModel();
-      int diff = Integer.MAX_VALUE;
+      int diffNumber = Integer.MAX_VALUE;
       int diffLayout = Integer.MAX_VALUE;
       for (Object m : list) {
         if (m instanceof GridBagLayoutModel model) {
           int layoutSize = getViewTypeNumber(model, getSeriesViewerClass());
-          int layoutDiff = Math.abs(layoutSize - size);
-          if (layoutSize >= size && layoutDiff <= diff) {
-            if (layoutDiff == diff) {
-              Dimension dim = model.getGridSize();
-              if (Math.abs(dim.width - dim.height) < diffLayout) {
-                diffLayout = Math.abs(dim.width - dim.height);
+          int dn = Math.abs(layoutSize - size);
+          if (layoutSize >= size && dn <= diffNumber) {
+            Dimension dim = model.getGridSize();
+            int dwh = Math.abs(dim.width - dim.height);
+            if (dn == diffNumber) {
+              if (dwh < diffLayout) {
+                diffLayout = dwh;
+              } else if (dwh == diffLayout && dim.width > dim.height) {
+                diffLayout = dwh;
               } else {
                 continue;
               }
+            } else {
+              diffLayout = dwh;
             }
-            diff = layoutDiff;
+            diffNumber = dn;
             bestModel = model;
           }
         }
@@ -886,8 +891,8 @@ public abstract class ImageViewerPlugin<E extends ImageElement> extends ViewerPl
           int dn = Math.abs(layoutSize - size);
           if (layoutSize >= size && dn <= diffNumber) {
             Dimension dim = model.getGridSize();
+            int dwh = Math.abs(dim.width - dim.height);
             if (dn == diffNumber) {
-              int dwh = Math.abs(dim.width - dim.height);
               if (dwh < diffLayout) {
                 diffLayout = dwh;
               } else if (dwh == diffLayout && dim.width > dim.height) {
@@ -895,6 +900,8 @@ public abstract class ImageViewerPlugin<E extends ImageElement> extends ViewerPl
               } else {
                 continue;
               }
+            } else {
+              diffLayout = dwh;
             }
             diffNumber = dn;
             bestModel = model;

@@ -519,7 +519,7 @@ public class RetrieveTask extends ExplorerTask<ExplorerTask<Boolean, String>, St
               dicomQrView.getAuthMethod(),
               GuiUtils.getUICore()
                   .getSystemPreferences()
-                  .getIntProperty(LoadSeries.CONCURRENT_DOWNLOADS_IN_SERIES, 4),
+                  .getIntProperty(LoadSeries.CONCURRENT_DOWNLOADS_IN_SERIES, 6),
               true,
               startDownloading);
       loadSeries.setPriority(
