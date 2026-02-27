@@ -9,8 +9,11 @@ set SCRIPT_DIR=%~dp0
 cd /d "%SCRIPT_DIR%"
 
 REM ---- Configuration ----
-REM IMPORTANT: Set JDK path to your local JDK 21+ installation
-set JDK=C:\Program Files\Java\jdk-25
+REM Auto-detect JDK or set manually
+set JDK=
+if defined JAVA_HOME if exist "%JAVA_HOME%\bin\jpackage.exe" set "JDK=%JAVA_HOME%"
+if not defined JDK for /d %%D in ("C:\Program Files\Java\jdk-*") do if exist "%%D\bin\jpackage.exe" set "JDK=%%D"
+if not defined JDK for /d %%D in ("C:\Program Files\Eclipse Adoptium\jdk-*") do if exist "%%D\bin\jpackage.exe" set "JDK=%%D"
 set APP_NAME=ZenViewer
 REM WARNING: When changing APP_VERSION, also update:
 REM   - build-dmg.sh                    (APP_VERSION=...)
@@ -31,12 +34,12 @@ echo =============================================
 echo.
 
 REM Verify JDK exists
-if not exist "%JDK%\bin\jpackage.exe" (
-    echo ERROR: JDK not found at %JDK%
-    echo Please install JDK 21+ and set the JDK variable in this script.
+if not defined JDK (
+    echo ERROR: JDK 21+ not found. Searched JAVA_HOME, Program Files\Java, Eclipse Adoptium.
     echo Download from: https://adoptium.net/
     exit /b 1
 )
+echo   Using JDK: %JDK%
 
 REM ---- Step 1: Maven Build ----
 echo [1/6] Building Weasis project with Maven...
@@ -122,14 +125,7 @@ echo [4/6] Fixing .cfg classpath (OSGi class space fix)...
 set CFG_FILE=%OUTPUT_DIR%\%APP_NAME%\app\%APP_NAME%.cfg
 
 REM Use PowerShell to filter out bundle jar classpath entries
-powershell -Command ^
-  "$content = Get-Content '%CFG_FILE%'; ^
-   $filtered = $content | Where-Object { ^
-     -not ($_ -match 'app\.classpath=.*bundle[/\\]') -and ^
-     -not ($_ -match 'app\.classpath=.*bundle-i18n[/\\]') -and ^
-     (-not ($_ -match 'app\.classpath=') -or $_ -match 'weasis-launcher\.jar' -or $_ -match 'felix\.jar') ^
-   }; ^
-   $filtered | Set-Content '%CFG_FILE%'"
+powershell -Command "$c = Get-Content '%CFG_FILE%'; $f = $c | Where-Object { -not ($_ -match 'app\.classpath=.*bundle[/\\]') -and -not ($_ -match 'app\.classpath=.*bundle-i18n[/\\]') -and (-not ($_ -match 'app\.classpath=') -or $_ -match 'weasis-launcher\.jar' -or $_ -match 'felix\.jar') }; $f | Set-Content '%CFG_FILE%'"
 
 echo   OK  Classpath fixed (only weasis-launcher.jar + felix.jar)
 
@@ -137,6 +133,10 @@ REM ---- Step 5: Create MSI installer ----
 echo.
 echo [5/6] Creating MSI installer...
 set UPGRADE_UID=b2c3d4e5-f6a7-8901-bcde-f12345678901
+
+REM Fix Turkish locale bug: jpackage lowercases paths using system locale,
+REM producing invalid WiX IDs on Turkish systems (I -> dotless-i).
+set JAVA_TOOL_OPTIONS=-Duser.language=en -Duser.country=US
 
 "%JDK%\bin\jpackage" ^
   --type msi ^
