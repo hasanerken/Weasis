@@ -60,7 +60,7 @@ public class AudioRecorderPanel extends JPanel {
   private static final int COLLAPSED_W = 80;
   private static final int COLLAPSED_H = 28;
   private static final int EXPANDED_WIDTH = 280;
-  private static final int EXPANDED_HEIGHT = 400;
+  private static final int EXPANDED_HEIGHT = 240;
   private static final int MARGIN = 8;
 
   private final DicomExplorer explorer;
@@ -160,51 +160,45 @@ public class AudioRecorderPanel extends JPanel {
     JPanel center = new JPanel(new BorderLayout(0, 0));
     center.setOpaque(false);
 
-    // Top section: timer + controls + status (centered)
-    JPanel topSection = new JPanel();
-    topSection.setLayout(new BoxLayout(topSection, BoxLayout.Y_AXIS));
+    // Top section: timer + controls + status on one line
+    JPanel topSection = new JPanel(new BorderLayout(0, 4));
     topSection.setOpaque(false);
+
+    JPanel controlRow = new JPanel(new FlowLayout(FlowLayout.CENTER, 6, 0));
+    controlRow.setOpaque(false);
 
     timerLabel = new JLabel("00:00");
     timerLabel.setForeground(TEXT_COLOR);
-    timerLabel.setFont(new Font("Monospaced", Font.BOLD, 24));
-    timerLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-    topSection.add(timerLabel);
-    topSection.add(Box.createVerticalStrut(8));
+    timerLabel.setFont(new Font("Monospaced", Font.BOLD, 16));
+    controlRow.add(timerLabel);
 
-    JPanel controls = new JPanel(new FlowLayout(FlowLayout.CENTER, 8, 0));
-    controls.setOpaque(false);
     btnRecord = createControlButton("\u25CF", "Kay\u0131t Ba\u015flat ("
         + ZenShortcuts.getInstance().getDisplayText(ZenShortcuts.Action.RECORD) + ")", RECORD_RED);
     btnRecord.addActionListener(e -> onRecord());
-    controls.add(btnRecord);
+    controlRow.add(btnRecord);
     btnPause = createControlButton("\u2759\u2759", "Duraklat/Devam ("
         + ZenShortcuts.getInstance().getDisplayText(ZenShortcuts.Action.PAUSE_RESUME) + ")", WARN_AMBER);
     btnPause.setEnabled(false);
     btnPause.addActionListener(e -> onPause());
-    controls.add(btnPause);
+    controlRow.add(btnPause);
     btnStop = createControlButton("\u25A0", "Durdur ("
         + ZenShortcuts.getInstance().getDisplayText(ZenShortcuts.Action.RECORD) + ")", TEXT_COLOR);
     btnStop.setEnabled(false);
     btnStop.addActionListener(e -> onStop());
-    controls.add(btnStop);
-    controls.setAlignmentX(Component.CENTER_ALIGNMENT);
-    topSection.add(controls);
-    topSection.add(Box.createVerticalStrut(6));
+    controlRow.add(btnStop);
 
     statusLabel = new JLabel("Haz\u0131r");
     statusLabel.setForeground(new Color(150, 150, 150));
-    statusLabel.setFont(statusLabel.getFont().deriveFont(11f));
-    statusLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-    topSection.add(statusLabel);
-    topSection.add(Box.createVerticalStrut(8));
+    statusLabel.setFont(statusLabel.getFont().deriveFont(10f));
+    controlRow.add(statusLabel);
+
+    topSection.add(controlRow, BorderLayout.CENTER);
 
     JPanel sep = new JPanel();
     sep.setBackground(BORDER_COLOR);
     sep.setMaximumSize(new Dimension(Integer.MAX_VALUE, 1));
     sep.setPreferredSize(new Dimension(0, 1));
-    sep.setAlignmentX(Component.CENTER_ALIGNMENT);
-    topSection.add(sep);
+    topSection.add(sep, BorderLayout.SOUTH);
 
     center.add(topSection, BorderLayout.NORTH);
 
@@ -281,8 +275,8 @@ public class AudioRecorderPanel extends JPanel {
   private JButton createControlButton(String text, String tooltip, Color fg) {
     JButton btn = new JButton(text);
     btn.setForeground(fg);
-    btn.setFont(new Font("Dialog", Font.BOLD, 16));
-    btn.setPreferredSize(new Dimension(44, 36));
+    btn.setFont(new Font("Dialog", Font.BOLD, 14));
+    btn.setPreferredSize(new Dimension(36, 30));
     btn.setToolTipText(tooltip);
     btn.setFocusPainted(false);
     btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));

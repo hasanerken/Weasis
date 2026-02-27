@@ -12,6 +12,7 @@ package org.weasis.dicom.explorer;
 import java.awt.KeyEventDispatcher;
 import java.awt.KeyboardFocusManager;
 import java.awt.Window;
+import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.util.Hashtable;
 import java.util.List;
@@ -94,6 +95,16 @@ public class DicomExplorerFactory implements DataExplorerViewFactory {
     zenKeyDispatcher = e -> {
       if (e.getID() != KeyEvent.KEY_PRESSED) {
         return false;
+      }
+      // Don't intercept bare keys when focus is in a text input
+      int mod = e.getModifiersEx() & (InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK
+          | InputEvent.ALT_DOWN_MASK | InputEvent.META_DOWN_MASK);
+      if (mod == 0) {
+        java.awt.Component focused =
+            KeyboardFocusManager.getCurrentKeyboardFocusManager().getFocusOwner();
+        if (focused instanceof javax.swing.text.JTextComponent) {
+          return false;
+        }
       }
       if (shortcuts.matches(ZenShortcuts.Action.OKUNDU, e)) {
         if (zenToolBar != null) SwingUtilities.invokeLater(zenToolBar::triggerOkundu);

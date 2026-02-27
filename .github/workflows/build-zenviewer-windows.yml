@@ -1,0 +1,91 @@
+name: Build ZenViewer Windows MSI
+on:
+  workflow_dispatch:
+
+jobs:
+  build-msi:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up JDK
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: '24'
+          cache: 'maven'
+
+      - name: Build with Maven
+        shell: cmd
+        run: mvn -B clean install -DskipTests -q
+
+      - name: Build native distribution
+        shell: cmd
+        run: |
+          cd weasis-distributions
+          mvn -B clean install -DskipTests -q
+
+      - name: Extract native distribution
+        shell: pwsh
+        run: |
+          Expand-Archive -Force -Path weasis-distributions/target/native-dist/weasis-native.zip -DestinationPath weasis-distributions/target/native-dist/bin-dist
+
+      - name: Determine input directory
+        id: find-input
+        shell: pwsh
+        run: |
+          $primary = "weasis-distributions/target/native-dist/bin-dist/weasis"
+          $nested = "weasis-distributions/target/native-dist/bin-dist/bin-dist/weasis"
+          if (Test-Path "$primary/weasis-launcher.jar") {
+            echo "INPUT_DIR=$primary" >> $env:GITHUB_ENV
+          } elseif (Test-Path "$nested/weasis-launcher.jar") {
+            echo "INPUT_DIR=$nested" >> $env:GITHUB_ENV
+          } else {
+            Write-Error "Cannot find weasis input directory"
+            exit 1
+          }
+
+      - name: Read version from build-windows.bat
+        shell: pwsh
+        run: |
+          $content = Get-Content build-windows.bat -Raw
+          if ($content -match 'set APP_VERSION=(\S+)') {
+            echo "APP_VERSION=$($Matches[1])" >> $env:GITHUB_ENV
+          } else {
+            echo "APP_VERSION=1.0.10" >> $env:GITHUB_ENV
+          }
+
+      - name: Create app-image with jpackage
+        shell: cmd
+        run: |
+          set JDK_MODULES=java.base,java.compiler,java.datatransfer,java.net.http,java.desktop,java.logging,java.management,java.prefs,java.xml,jdk.localedata,jdk.charsets,jdk.crypto.ec,jdk.crypto.cryptoki,jdk.jdwp.agent,java.sql,jdk.crypto.mscapi
+          jpackage --type app-image --name ZenViewer --input "%INPUT_DIR%" --main-jar weasis-launcher.jar --main-class org.weasis.launcher.AppLauncher --add-modules "%JDK_MODULES%" --java-options "-Xms512m" --java-options "-Xmx6g" --java-options "-XX:+UseG1GC" --java-options "--add-opens=java.base/java.lang=ALL-UNNAMED" --java-options "--add-opens=java.base/java.lang.reflect=ALL-UNNAMED" --java-options "--add-opens=java.base/java.text=ALL-UNNAMED" --java-options "--add-opens=java.desktop/java.awt=ALL-UNNAMED" --java-options "--add-opens=java.desktop/java.awt.image=ALL-UNNAMED" --java-options "--add-opens=java.desktop/java.awt.color=ALL-UNNAMED" --java-options "--add-opens=java.desktop/javax.swing=ALL-UNNAMED" --java-options "--add-opens=java.desktop/javax.swing.border=ALL-UNNAMED" --java-options "--add-opens=java.desktop/javax.swing.plaf.basic=ALL-UNNAMED" --java-options "--add-opens=java.desktop/sun.awt=ALL-UNNAMED" --java-options "--add-opens=java.desktop/sun.java2d=ALL-UNNAMED" --java-options "-Djdk.xml.maxGeneralEntitySizeLimit=0" --java-options "-Djdk.xml.totalEntitySizeLimit=0" --icon weasis-distributions/script/resources/windows/Weasis.ico --app-version "%APP_VERSION%" --dest target
+
+      - name: Fix .cfg classpath for OSGi
+        shell: pwsh
+        run: |
+          $cfg = "target/ZenViewer/app/ZenViewer.cfg"
+          $content = Get-Content $cfg
+          $filtered = $content | Where-Object {
+            -not ($_ -match 'app\.classpath=.*bundle[/\\]') -and
+            -not ($_ -match 'app\.classpath=.*bundle-i18n[/\\]') -and
+            (-not ($_ -match 'app\.classpath=') -or $_ -match 'weasis-launcher\.jar' -or $_ -match 'felix\.jar')
+          }
+          $filtered | Set-Content $cfg
+
+      - name: Create MSI installer
+        shell: cmd
+        run: |
+          set JAVA_TOOL_OPTIONS=-Duser.language=en -Duser.country=US
+          jpackage --type msi --app-image "target\ZenViewer" --dest target --name ZenViewer --resource-dir "build-resources\windows\msi\x86-64" --description "ZenViewer DICOM viewer" --win-upgrade-uuid "b2c3d4e5-f6a7-8901-bcde-f12345678901" --win-menu --win-menu-group ZenViewer --win-shortcut-prompt --copyright "Copyright (C) 2026 ZenPACS" --app-version "%APP_VERSION%" --vendor ZenPACS --file-associations "weasis-distributions\script\file-associations.properties" --verbose
+
+      - name: Rename MSI with architecture
+        shell: pwsh
+        run: |
+          Move-Item "target/ZenViewer-$env:APP_VERSION.msi" "target/ZenViewer-$env:APP_VERSION-x86-64.msi"
+
+      - name: Upload MSI artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: ZenViewer-${{ env.APP_VERSION }}-windows-x64
+          path: target/ZenViewer-${{ env.APP_VERSION }}-x86-64.msi

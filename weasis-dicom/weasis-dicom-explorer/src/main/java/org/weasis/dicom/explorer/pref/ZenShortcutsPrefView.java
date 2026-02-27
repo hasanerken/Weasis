@@ -135,12 +135,6 @@ public class ZenShortcutsPrefView extends AbstractItemDialogPage {
                   | InputEvent.ALT_DOWN_MASK
                   | InputEvent.META_DOWN_MASK);
 
-      // Require at least one modifier
-      if (mod == 0) {
-        e.consume();
-        return;
-      }
-
       e.consume();
 
       // Check conflicts
