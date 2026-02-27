@@ -15,9 +15,6 @@ import java.awt.Font;
 import java.awt.Insets;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
-import java.awt.Toolkit;
-import java.awt.event.AWTEventListener;
-import java.awt.event.MouseEvent;
 import java.io.File;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
@@ -70,7 +67,6 @@ public class AudioRecorderPanel extends JPanel {
   private final AudioRecorderService recorderService;
   private boolean expanded = false;
   private boolean micAvailable = false;
-  private AWTEventListener dismissListener;
 
   // Collapsed state
   private JButton micButton;
@@ -300,9 +296,7 @@ public class AudioRecorderPanel extends JPanel {
       expandedPanel.setVisible(true);
       setSize(EXPANDED_WIDTH, EXPANDED_HEIGHT);
       loadRecordings();
-      installDismissListener();
     } else {
-      removeDismissListener();
       expandedPanel.setVisible(false);
       micButton.setVisible(true);
       setSize(COLLAPSED_W, COLLAPSED_H);
@@ -712,6 +706,13 @@ public class AudioRecorderPanel extends JPanel {
     return (String) patient.getTagValue(DownloadManager.PATIENT_CASE_ID);
   }
 
+  /** Called when the selected patient changes in DicomExplorer. Reloads recordings if expanded. */
+  public void onPatientChanged() {
+    if (expanded) {
+      loadRecordings();
+    }
+  }
+
   public void installInLayeredPane(JLayeredPane layeredPane) {
     layeredPane.add(this, JLayeredPane.PALETTE_LAYER);
     repositionInParent();
@@ -731,30 +732,6 @@ public class AudioRecorderPanel extends JPanel {
     int x = parentW - myW - MARGIN - 80;
     int y = MARGIN;
     setLocation(x, y);
-  }
-
-  private void installDismissListener() {
-    removeDismissListener();
-    dismissListener = event -> {
-      if (event.getID() == MouseEvent.MOUSE_PRESSED && expanded) {
-        MouseEvent me = (MouseEvent) event;
-        java.awt.Point screenPoint = me.getLocationOnScreen();
-        java.awt.Point panelLoc = getLocationOnScreen();
-        java.awt.Rectangle panelBounds = new java.awt.Rectangle(
-            panelLoc.x, panelLoc.y, getWidth(), getHeight());
-        if (!panelBounds.contains(screenPoint)) {
-          SwingUtilities.invokeLater(this::toggleExpanded);
-        }
-      }
-    };
-    Toolkit.getDefaultToolkit().addAWTEventListener(dismissListener, java.awt.AWTEvent.MOUSE_EVENT_MASK);
-  }
-
-  private void removeDismissListener() {
-    if (dismissListener != null) {
-      Toolkit.getDefaultToolkit().removeAWTEventListener(dismissListener);
-      dismissListener = null;
-    }
   }
 
   private static String formatSize(long bytes) {

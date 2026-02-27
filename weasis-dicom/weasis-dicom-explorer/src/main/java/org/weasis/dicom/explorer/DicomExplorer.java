@@ -123,6 +123,7 @@ public class DicomExplorer extends PluginTool implements DataExplorerView, Serie
   public static final String ALL_STUDIES = Messages.getString("DicomExplorer.sel_all_st");
 
   private final PatientPane selectedPatient = new PatientPane();
+  private AudioRecorderPanel audioRecorderPanel;
 
   private final HashMap<MediaSeriesGroup, List<StudyPane>> patient2study = new HashMap<>();
   private final HashMap<MediaSeriesGroup, List<SeriesPane>> study2series = new HashMap<>();
@@ -185,6 +186,9 @@ public class DicomExplorer extends PluginTool implements DataExplorerView, Serie
               PatientCaseInfoPanel.updateGlobal(caseId);
             } else {
               PatientCaseInfoPanel.updateGlobal(null);
+            }
+            if (audioRecorderPanel != null) {
+              audioRecorderPanel.onPatientChanged();
             }
           }
         };
@@ -427,6 +431,10 @@ public class DicomExplorer extends PluginTool implements DataExplorerView, Serie
 
   public MediaSeriesGroupNode getSelectedPatient() {
     return getPatient(modelPatient.getSelectedItem());
+  }
+
+  public void setAudioRecorderPanel(AudioRecorderPanel panel) {
+    this.audioRecorderPanel = panel;
   }
 
   public MediaSeries<? extends MediaElement> movePatient(

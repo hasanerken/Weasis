@@ -73,6 +73,7 @@ public class DicomExplorerFactory implements DataExplorerViewFactory {
         System.out.println("[ZenPACS] layeredPane size: " + layeredPane.getWidth() + "x" + layeredPane.getHeight());
         recorderPanel = new AudioRecorderPanel(explorerRef);
         recorderPanel.installInLayeredPane(layeredPane);
+        explorerRef.setAudioRecorderPanel(recorderPanel);
         System.out.println("[ZenPACS] AudioRecorderPanel installed");
 
         // Register global keyboard shortcuts

@@ -16,7 +16,7 @@ REM WARNING: When changing APP_VERSION, also update:
 REM   - build-dmg.sh                    (APP_VERSION=...)
 REM   - weasis-launcher/conf/base.json  (zenviewer.version)
 REM   - weasis-update.json in MinIO bucket zenviewer-releases
-set APP_VERSION=1.0.9
+set APP_VERSION=1.0.10
 set BUNDLE_ID=com.zenpacs.zenviewer
 set ICON=%SCRIPT_DIR%weasis-distributions\script\resources\windows\Weasis.ico
 set OUTPUT_DIR=%SCRIPT_DIR%target
