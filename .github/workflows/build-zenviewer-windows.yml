@@ -1,6 +1,12 @@
 name: Build ZenViewer Windows MSI
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - master
+    paths-ignore:
+      - '*.md'
+      - '.github/workflows/maven.yml'
 
 jobs:
   build-msi:
@@ -14,6 +20,17 @@ jobs:
           distribution: 'temurin'
           java-version: '24'
           cache: 'maven'
+
+      - name: Read version from build-windows.bat
+        shell: pwsh
+        run: |
+          $content = Get-Content build-windows.bat -Raw
+          if ($content -match 'set APP_VERSION=(\S+)') {
+            echo "APP_VERSION=$($Matches[1])" >> $env:GITHUB_ENV
+          } else {
+            Write-Error "Cannot determine APP_VERSION from build-windows.bat"
+            exit 1
+          }
 
       - name: Build with Maven
         shell: cmd
@@ -31,7 +48,6 @@ jobs:
           Expand-Archive -Force -Path weasis-distributions/target/native-dist/weasis-native.zip -DestinationPath weasis-distributions/target/native-dist/bin-dist
 
       - name: Determine input directory
-        id: find-input
         shell: pwsh
         run: |
           $primary = "weasis-distributions/target/native-dist/bin-dist/weasis"
@@ -43,16 +59,6 @@ jobs:
           } else {
             Write-Error "Cannot find weasis input directory"
             exit 1
-          }
-
-      - name: Read version from build-windows.bat
-        shell: pwsh
-        run: |
-          $content = Get-Content build-windows.bat -Raw
-          if ($content -match 'set APP_VERSION=(\S+)') {
-            echo "APP_VERSION=$($Matches[1])" >> $env:GITHUB_ENV
-          } else {
-            echo "APP_VERSION=1.0.10" >> $env:GITHUB_ENV
           }
 
       - name: Create app-image with jpackage
