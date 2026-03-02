@@ -46,8 +46,10 @@ public class ZenShortcutsPrefView extends AbstractItemDialogPage {
       GuiUtils.setPreferredWidth(label, 120, 80);
 
       JTextField field = new JTextField(shortcuts.getDisplayText(action), 14);
-      field.setEditable(false);
+      field.setEditable(true);
       field.setFocusable(true);
+      // Keep editable=true so Windows L&F delivers key events to this field.
+      // The ShortcutKeyListener consumes every key event, so no text is ever typed in.
       field.addKeyListener(new ShortcutKeyListener(action, field));
       fields.put(action, field);
 
@@ -115,6 +117,12 @@ public class ZenShortcutsPrefView extends AbstractItemDialogPage {
     ShortcutKeyListener(Action action, JTextField field) {
       this.action = action;
       this.field = field;
+    }
+
+    @Override
+    public void keyTyped(KeyEvent e) {
+      // Prevent any character from being inserted into the field
+      e.consume();
     }
 
     @Override

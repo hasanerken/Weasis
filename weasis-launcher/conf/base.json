@@ -261,7 +261,7 @@
     },
     {
       "code": "zenviewer.version",
-      "value": "1.0.10",
+      "value": "1.0.11",
       "description": "ZenViewer product version for update checks. WARNING: Must match APP_VERSION in build-dmg.sh, build-windows.bat, and weasis-update.json in MinIO",
       "type": "A",
       "category": "LOCK"
