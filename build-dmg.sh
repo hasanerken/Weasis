@@ -17,7 +17,7 @@ cd "$SCRIPT_DIR"
 
 # Configuration
 JDK_ARM64="/Users/hasanerken/Library/Java/JavaVirtualMachines/jdk-25.jdk/Contents/Home"
-JDK_X64="/tmp/jdk25-x64/jdk-25.0.2+10/Contents/Home"
+JDK_X64="/usr/local/Cellar/openjdk/25.0.2/libexec/openjdk.jdk/Contents/Home"
 APP_NAME="ZenViewer"
 # WARNING: When changing APP_VERSION, also update:
 #   - build-windows.bat          (set APP_VERSION=...)
