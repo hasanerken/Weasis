@@ -345,12 +345,12 @@ public class PatientCaseInfoPanel extends PluginTool {
     for (JsonNode order : orders) {
       for (JsonNode anam : toList(order.get("anamnesis"))) {
         String contentKey =
-            textVal(anam, "complaints")
-                + "|" + textVal(anam, "history")
-                + "|" + textVal(anam, "symptoms")
-                + "|" + textVal(anam, "pre_diagnosis")
-                + "|" + textVal(anam, "cure");
-        if (!contentKey.trim().isEmpty() && seenKeys.add(contentKey.trim())) {
+            textVal(anam, "complaints").trim()
+                + "|" + textVal(anam, "history").trim()
+                + "|" + textVal(anam, "symptoms").trim()
+                + "|" + textVal(anam, "pre_diagnosis").trim()
+                + "|" + textVal(anam, "cure").trim();
+        if (!contentKey.equals("||||") && seenKeys.add(contentKey)) {
           uniqueAnamnesis.add(anam);
         }
       }

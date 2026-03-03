@@ -23,7 +23,7 @@ APP_NAME="ZenViewer"
 #   - build-windows.bat          (set APP_VERSION=...)
 #   - weasis-launcher/conf/base.json  (zenviewer.version)
 #   - weasis-update.json in MinIO bucket zenviewer-releases
-APP_VERSION="1.0.11"
+APP_VERSION="1.0.12"
 BUNDLE_ID="com.zenpacs.zenviewer"
 ICON="$SCRIPT_DIR/weasis-distributions/script/resources/macosx/Weasis.icns"
 INPUT_DIR="$SCRIPT_DIR/weasis-distributions/target/native-dist/bin-dist/bin-dist/weasis"
