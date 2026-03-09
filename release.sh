@@ -59,13 +59,13 @@ build_dmgs() {
 
   echo ""
   echo "[DMG] Building x64 DMG..."
-  echo "  NOTE: Uses Temurin JDK 21 x64 (/tmp/jdk21-x64) for macOS 10.12+ compatibility"
-  echo "        If /tmp/jdk21-x64 is missing, download it first:"
-  echo "        curl -L 'https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.6%2B7/OpenJDK21U-jdk_x64_mac_hotspot_21.0.6_7.tar.gz' -o /tmp/temurin21-x64.tar.gz && mkdir -p /tmp/jdk21-x64 && tar -xzf /tmp/temurin21-x64.tar.gz -C /tmp/jdk21-x64 --strip-components=1"
+  echo "  NOTE: Uses Temurin JDK 21 x64 (/tmp/jdk22-x64) for macOS 10.12+ compatibility"
+  echo "        If /tmp/jdk22-x64 is missing, download it first:"
+  echo "        curl -L 'https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.6%2B7/OpenJDK21U-jdk_x64_mac_hotspot_21.0.6_7.tar.gz' -o /tmp/temurin21-x64.tar.gz && mkdir -p /tmp/jdk22-x64 && tar -xzf /tmp/temurin21-x64.tar.gz -C /tmp/jdk22-x64 --strip-components=1"
   echo ""
   # Verify Temurin x64 JDK is available
-  if [ ! -x "/tmp/jdk21-x64/Contents/Home/bin/jpackage" ]; then
-    echo "  ERROR: Temurin JDK 21 x64 not found at /tmp/jdk21-x64"
+  if [ ! -x "/tmp/jdk22-x64/Contents/Home/bin/jpackage" ]; then
+    echo "  ERROR: Temurin JDK 21 x64 not found at /tmp/jdk22-x64"
     echo "  Download it with the command above, then re-run."
     exit 1
   fi
