@@ -33,12 +33,11 @@ echo ""
 # --- Helper: Upload to MinIO ---
 upload_to_minio() {
   local file="$1"
-  local platform="$1
-  "
+  local platform="$2"
   local filename=$(basename "$file")
 
   echo "  Uploading ${filename} to ${MINIO_BUCKET}/${APP_VERSION}/${platform}/..."
-  mc cp "$file" "${MINIO_ALIAS}/${MINIO_BUCKET}/${APP_VERSION}/${platform}/"
+  mc cp --overwrite "$file" "${MINIO_ALIAS}/${MINIO_BUCKET}/${APP_VERSION}/${platform}/"
   echo "  OK"
 }
 
