@@ -51,8 +51,8 @@ build_app_image() {
   # Verify JDK
   if [ ! -x "$JDK/bin/jpackage" ]; then
     echo "  ERROR: JDK not found at $JDK"
-    echo "  For x64, download Temurin JDK 21 x64 from https://adoptium.net/"
-    echo "  Extract to /tmp/jdk21-x64/"
+    echo "  For x64, download Temurin JDK 22 x64 from https://adoptium.net/"
+    echo "  Extract to /tmp/jdk22-x64/"
     return 1
   fi
 

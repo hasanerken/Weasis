@@ -33,7 +33,8 @@ echo ""
 # --- Helper: Upload to MinIO ---
 upload_to_minio() {
   local file="$1"
-  local platform="$2"
+  local platform="$1
+  "
   local filename=$(basename "$file")
 
   echo "  Uploading ${filename} to ${MINIO_BUCKET}/${APP_VERSION}/${platform}/..."
@@ -59,13 +60,13 @@ build_dmgs() {
 
   echo ""
   echo "[DMG] Building x64 DMG..."
-  echo "  NOTE: Uses Temurin JDK 21 x64 (/tmp/jdk22-x64) for macOS 10.12+ compatibility"
+  echo "  NOTE: Uses Temurin JDK 22 x64 (/tmp/jdk22-x64) for macOS 11.0+ compatibility"
   echo "        If /tmp/jdk22-x64 is missing, download it first:"
-  echo "        curl -L 'https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.6%2B7/OpenJDK21U-jdk_x64_mac_hotspot_21.0.6_7.tar.gz' -o /tmp/temurin21-x64.tar.gz && mkdir -p /tmp/jdk22-x64 && tar -xzf /tmp/temurin21-x64.tar.gz -C /tmp/jdk22-x64 --strip-components=1"
+  echo "        curl -L 'https://github.com/adoptium/temurin22-binaries/releases/download/jdk-22.0.2%2B9/OpenJDK22U-jdk_x64_mac_hotspot_22.0.2_9.tar.gz' -o /tmp/temurin22-x64.tar.gz && cd /tmp && tar -xzf temurin22-x64.tar.gz && cp -R /tmp/jdk-22.0.2+9/Contents /tmp/jdk22-x64/"
   echo ""
   # Verify Temurin x64 JDK is available
   if [ ! -x "/tmp/jdk22-x64/Contents/Home/bin/jpackage" ]; then
-    echo "  ERROR: Temurin JDK 21 x64 not found at /tmp/jdk22-x64"
+    echo "  ERROR: Temurin JDK 22 x64 not found at /tmp/jdk22-x64"
     echo "  Download it with the command above, then re-run."
     exit 1
   fi
