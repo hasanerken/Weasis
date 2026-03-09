@@ -119,20 +119,27 @@ public class PluginOpeningStrategy {
           firstViewerOpened.set(true);
 
           // Collect up to 2 non-hidden series of the same type for side-by-side display
+          // (can be disabled via zenviewer.dual.series.layout preference)
           List<MediaSeries<? extends MediaElement>> seriesToOpen = new ArrayList<>();
           seriesToOpen.add(dicomSeries);
-          for (MediaSeriesGroup study : dicomModel.getChildren(patient)) {
-            for (MediaSeriesGroup seq : dicomModel.getChildren(study)) {
-              if (seq instanceof Series<?> s
-                  && s != dicomSeries
-                  && !DicomModel.isHiddenModality(s)
-                  && s.getMimeType() != null
-                  && s.getMimeType().equals(mime)) {
-                seriesToOpen.add((MediaSeries) s);
-                if (seriesToOpen.size() >= 2) break;
+          boolean dualLayout =
+              GuiUtils.getUICore()
+                  .getSystemPreferences()
+                  .getBooleanProperty("zenviewer.dual.series.layout", true); // NON-NLS
+          if (dualLayout) {
+            for (MediaSeriesGroup study : dicomModel.getChildren(patient)) {
+              for (MediaSeriesGroup seq : dicomModel.getChildren(study)) {
+                if (seq instanceof Series<?> s
+                    && s != dicomSeries
+                    && !DicomModel.isHiddenModality(s)
+                    && s.getMimeType() != null
+                    && s.getMimeType().equals(mime)) {
+                  seriesToOpen.add((MediaSeries) s);
+                  if (seriesToOpen.size() >= 2) break;
+                }
               }
+              if (seriesToOpen.size() >= 2) break;
             }
-            if (seriesToOpen.size() >= 2) break;
           }
 
           ViewerPluginBuilder.openSequenceInPlugin(

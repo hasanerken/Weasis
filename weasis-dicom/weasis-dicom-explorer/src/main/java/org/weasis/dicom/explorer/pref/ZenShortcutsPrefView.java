@@ -12,6 +12,7 @@ import java.awt.event.KeyEvent;
 import java.util.EnumMap;
 import java.util.Map;
 import javax.swing.JButton;
+import javax.swing.JCheckBox;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
@@ -23,15 +24,26 @@ import org.weasis.dicom.explorer.ZenShortcuts.Action;
 
 public class ZenShortcutsPrefView extends AbstractItemDialogPage {
 
+  private static final String DUAL_LAYOUT_KEY = "zenviewer.dual.series.layout"; // NON-NLS
   private static final Color CONFLICT_COLOR = new Color(190, 100, 100);
 
   private final Map<Action, JTextField> fields = new EnumMap<>(Action.class);
   private final Map<Action, int[]> pendingBindings = new EnumMap<>(Action.class);
+  private final JCheckBox dualLayoutCheckBox;
 
   public ZenShortcutsPrefView() {
     super("ZenPACS K\u0131sayol Tu\u015flar\u0131", 800);
 
     ZenShortcuts shortcuts = ZenShortcuts.getInstance();
+
+    // --- Viewer settings panel ---
+    boolean dualLayout =
+        GuiUtils.getUICore().getSystemPreferences().getBooleanProperty(DUAL_LAYOUT_KEY, true);
+    dualLayoutCheckBox = new JCheckBox("1x2 görüntüleme düzeni (iki seri yan yana)", dualLayout);
+    JPanel viewerPanel = GuiUtils.getVerticalBoxLayoutPanel();
+    viewerPanel.setBorder(GuiUtils.getTitledBorder("Görüntüleyici"));
+    viewerPanel.add(GuiUtils.getFlowLayoutPanel(dualLayoutCheckBox));
+    add(viewerPanel);
 
     JPanel panel = GuiUtils.getVerticalBoxLayoutPanel();
     panel.setBorder(
@@ -78,6 +90,7 @@ public class ZenShortcutsPrefView extends AbstractItemDialogPage {
 
   @Override
   public void resetToDefaultValues() {
+    dualLayoutCheckBox.setSelected(true);
     for (Action action : Action.values()) {
       resetSingleAction(action);
     }
@@ -85,6 +98,9 @@ public class ZenShortcutsPrefView extends AbstractItemDialogPage {
 
   @Override
   public void closeAdditionalWindow() {
+    GuiUtils.getUICore()
+        .getSystemPreferences()
+        .put(DUAL_LAYOUT_KEY, Boolean.toString(dualLayoutCheckBox.isSelected()));
     ZenShortcuts shortcuts = ZenShortcuts.getInstance();
     for (Action action : Action.values()) {
       int[] binding = pendingBindings.get(action);
