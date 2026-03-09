@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git add build-dmg.sh build-windows.bat weasis-launcher/conf/base.json weasis-dicom/weasis-dicom-explorer/src/main/java/org/weasis/dicom/explorer/PatientCaseInfoPanel.java)",
+      "Bash(gh run list --repo hasanerken/ZenViewer --limit 3)",
+      "Bash(gh run view --job=65579643499 --repo hasanerken/ZenViewer --log)",
+      "Bash(gh run download 22630696330 --repo hasanerken/ZenViewer --name \"ZenViewer-1.0.12-windows-x64\" --dir /tmp/zenviewer-1.0.12/windows)",
+      "Bash(# Check the arm64 JDK for comparison to find where jvm.cfg lives find /private/tmp/jdk25-arm64 -name \"\"jvm.cfg\"\")",
+      "Bash(/private/tmp/jdk25-x64/jdk-25.0.2+10/Contents/Home/bin/java -version)",
+      "Bash(./build-dmg.sh x64)",
+      "Bash(ls -lh /Users/hasanerken/Minasoft/Weasis/target/ZenViewer-1.0.12*)",
+      "Bash(./build-dmg.sh arm64)",
+      "Bash(./release.sh upload)",
+      "Bash(mc cp /Users/hasanerken/Minasoft/Weasis/target/ZenViewer-1.0.12-arm64.dmg swfs/zenviewer-releases/1.0.12/macos-arm64/)",
+      "Bash(mc cp /Users/hasanerken/Minasoft/Weasis/target/ZenViewer-1.0.12-x64.dmg swfs/zenviewer-releases/1.0.12/macos-x64/)",
+      "Bash(mc cp /tmp/zenviewer-1.0.12/windows/ZenViewer-1.0.12-x86-64.msi swfs/zenviewer-releases/1.0.12/windows-x64/)",
+      "Bash(mc ls swfs/zenviewer-releases/1.0.12/ --recursive)",
+      "Bash(git add build-dmg.sh)"
+    ],
+    "additionalDirectories": [
+      "/tmp"
+    ]
+  }
+}

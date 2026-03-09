@@ -101,6 +101,7 @@ public class ZenShortcutsPrefView extends AbstractItemDialogPage {
     GuiUtils.getUICore()
         .getSystemPreferences()
         .put(DUAL_LAYOUT_KEY, Boolean.toString(dualLayoutCheckBox.isSelected()));
+    GuiUtils.getUICore().saveSystemPreferences();
     ZenShortcuts shortcuts = ZenShortcuts.getInstance();
     for (Action action : Action.values()) {
       int[] binding = pendingBindings.get(action);

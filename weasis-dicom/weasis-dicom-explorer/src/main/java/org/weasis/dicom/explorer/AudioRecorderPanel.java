@@ -57,11 +57,12 @@ public class AudioRecorderPanel extends JPanel {
   private static final Color SUCCESS_GREEN = new Color(102, 187, 106);
   private static final Color WARN_AMBER = new Color(255, 183, 77);
 
-  private static final int COLLAPSED_W = 80;
+  private static final int COLLAPSED_W = 100;
   private static final int COLLAPSED_H = 28;
   private static final int EXPANDED_WIDTH = 280;
   private static final int EXPANDED_HEIGHT = 240;
   private static final int MARGIN = 8;
+  private static final int RIGHT_OFFSET = 100;
 
   private final DicomExplorer explorer;
   private final AudioRecorderService recorderService;
@@ -723,7 +724,7 @@ public class AudioRecorderPanel extends JPanel {
     if (getParent() == null) return;
     int parentW = getParent().getWidth();
     int myW = getWidth();
-    int x = parentW - myW - MARGIN - 80;
+    int x = parentW - myW - MARGIN - RIGHT_OFFSET;
     int y = MARGIN;
     setLocation(x, y);
   }
