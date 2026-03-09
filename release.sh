@@ -42,15 +42,48 @@ upload_to_minio() {
 }
 
 # --- Build DMGs ---
+# WARNING: Never use ./build-dmg.sh all — each arch run does mvn clean which
+# wipes target/, destroying the previously built DMG. Build and upload each arch separately.
 build_dmgs() {
-  echo "[DMG] Building macOS DMGs..."
+  echo "[DMG] Building arm64 DMG..."
   echo ""
-  ./build-dmg.sh all
+  ./build-dmg.sh arm64
+  echo ""
+  local arm64_dmg="target/ZenViewer-${APP_VERSION}-arm64.dmg"
+  if [ -f "$arm64_dmg" ]; then
+    upload_to_minio "$arm64_dmg" "macos-arm64"
+  else
+    echo "  ERROR: $arm64_dmg not found after build"
+    exit 1
+  fi
+
+  echo ""
+  echo "[DMG] Building x64 DMG..."
+  echo "  NOTE: Uses Temurin JDK 21 x64 (/tmp/jdk21-x64) for macOS 10.12+ compatibility"
+  echo "        If /tmp/jdk21-x64 is missing, download it first:"
+  echo "        curl -L 'https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.6%2B7/OpenJDK21U-jdk_x64_mac_hotspot_21.0.6_7.tar.gz' -o /tmp/temurin21-x64.tar.gz && mkdir -p /tmp/jdk21-x64 && tar -xzf /tmp/temurin21-x64.tar.gz -C /tmp/jdk21-x64 --strip-components=1"
+  echo ""
+  # Verify Temurin x64 JDK is available
+  if [ ! -x "/tmp/jdk21-x64/Contents/Home/bin/jpackage" ]; then
+    echo "  ERROR: Temurin JDK 21 x64 not found at /tmp/jdk21-x64"
+    echo "  Download it with the command above, then re-run."
+    exit 1
+  fi
+  ./build-dmg.sh x64
+  echo ""
+  local x64_dmg="target/ZenViewer-${APP_VERSION}-x64.dmg"
+  if [ -f "$x64_dmg" ]; then
+    upload_to_minio "$x64_dmg" "macos-x64"
+  else
+    echo "  ERROR: $x64_dmg not found after build"
+    exit 1
+  fi
+
   echo ""
   echo "[DMG] Build complete."
 }
 
-# --- Upload DMGs ---
+# --- Upload DMGs (upload-only, no build) ---
 upload_dmgs() {
   local arm64_dmg="target/ZenViewer-${APP_VERSION}-arm64.dmg"
   local x64_dmg="target/ZenViewer-${APP_VERSION}-x64.dmg"
@@ -202,8 +235,6 @@ case "$MODE" in
   all)
     build_dmgs
     echo ""
-    upload_dmgs
-    echo ""
     build_windows
     echo ""
     upload_windows
@@ -213,8 +244,6 @@ case "$MODE" in
     ;;
   dmg)
     build_dmgs
-    echo ""
-    upload_dmgs
     ;;
   windows)
     build_windows
